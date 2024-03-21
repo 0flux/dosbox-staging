@@ -1557,7 +1557,7 @@ Verbosity Config::GetStartupVerbosity() const
 	return Verbosity::High;
 }
 
-const std::string& Config::GetLanguage()
+const std::string& Config::GetLanguage() // XXX outdated, to be removed!
 {
 	static bool lang_is_cached = false;
 	static std::string lang    = {};
@@ -1772,6 +1772,7 @@ void Config::ParseArguments()
 	arguments.nolocalconf = cmdline->FindRemoveBoolArgument("nolocalconf");
 	arguments.fullscreen  = cmdline->FindRemoveBoolArgument("fullscreen");
 	arguments.list_countries = cmdline->FindRemoveBoolArgument("list-countries");
+	arguments.list_layouts = cmdline->FindRemoveBoolArgument("list-layouts");
 	arguments.list_glshaders = cmdline->FindRemoveBoolArgument("list-glshaders");
 	arguments.noconsole   = cmdline->FindRemoveBoolArgument("noconsole");
 	arguments.startmapper = cmdline->FindRemoveBoolArgument("startmapper");

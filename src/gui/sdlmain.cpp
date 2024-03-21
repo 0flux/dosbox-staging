@@ -4167,6 +4167,9 @@ static void messages_add_command_line()
 	        "  --list-countries         List all supported countries with their numeric codes.\n"
 	        "                           Codes are to be used in the 'country' config setting.\n"
 	        "\n"
+	        "  --list-layouts           List all supported keybaord layouts with their codes.\n"
+	        "                           Codes are to be used in the 'keyboardlayout' config setting.\n"
+	        "\n"
 	        "  --list-glshaders         List all available OpenGL shaders and their paths.\n"
 	        "                           Shaders are to be used in the 'glshader' config setting.\n"
 	        "\n"
@@ -4550,6 +4553,13 @@ static void list_countries()
 	printf_utf8("%s\n", message_utf8.c_str());
 }
 
+static void list_keyboard_layouts()
+{
+	const auto message_utf8 = DOS_GenerateListKeyboardLayoutsMessage();
+	printf_utf8("%s\n", message_utf8.c_str());
+}
+
+
 static int print_primary_config_location()
 {
 	const auto path = GetPrimaryConfigPath();
@@ -4642,7 +4652,7 @@ int sdl_main(int argc, char* argv[])
 
 	if (arguments->version || arguments->help || arguments->printconf ||
 	    arguments->editconf || arguments->eraseconf || arguments->list_countries ||
-	    arguments->list_glshaders || arguments->erasemapper) {
+	    arguments->list_layouts || arguments->list_glshaders || arguments->erasemapper) {
 		loguru::g_stderr_verbosity = loguru::Verbosity_WARNING;
 	}
 
@@ -4750,6 +4760,10 @@ int sdl_main(int argc, char* argv[])
 		}
 		if (arguments->list_countries) {
 			list_countries();
+			return 0;
+		}
+		if (arguments->list_layouts) {
+			list_keyboard_layouts();
 			return 0;
 		}
 		if (arguments->list_glshaders) {
