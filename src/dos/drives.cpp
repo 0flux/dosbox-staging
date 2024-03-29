@@ -183,7 +183,6 @@ bool filename_not_strict_8x3(const char *n)
 }
 
 DOS_Drive::DOS_Drive()
-	: dirCache()
 {
 	curdir[0] = '\0';
 	info[0] = '\0';

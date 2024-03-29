@@ -1329,7 +1329,7 @@ nextfile:
 		if (!entry_attributes.volume) {
 			goto nextfile;
 		}
-		dirCache.SetLabel(find_name, false, true);
+		SetLabel(find_name, false, true);
 	} else {
 		// Compare attributes to search attributes
 		const FatAttributeFlags attr_mask = {

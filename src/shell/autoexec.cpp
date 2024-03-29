@@ -53,6 +53,7 @@ static const std::string CmdCall          = "CALL ";
 static const std::string CmdDriveC        = "@C:";
 static const std::string ToNul            = " >NUL";
 static const std::string Quote            = "\"";
+static const std::string Colon            = ":";
 
 constexpr char char_lf = 0x0a; // line feed
 constexpr char char_cr = 0x0d; // carriage return
@@ -339,6 +340,15 @@ AutoExecModule::AutoExecModule(Section* configuration)
 
 	unsigned int index = 1;
 	while (cmdline->FindCommand(index++, argument)) {
+		// Check if argument is a physfs source
+		// if (argument.find(':',((argument[0] | 0x20) >= 'a' && (argument[0] | 0x20) <= 'z') ? 2 : 0) != std::string::npos) {
+		if (is_physfs_path(argument)) {
+			LOG_MSG("Mounting as PHYSFS: '%s'", argument.c_str());
+			ReMountDirAsDriveC(argument);
+			has_dir_or_command = true;
+			break;
+		}
+
 		// Check if argument is a file/directory
 
 		std_fs::path path = argument;
@@ -363,6 +373,17 @@ AutoExecModule::AutoExecModule(Section* configuration)
 			extension_ucase = extension_ucase.substr(1);
 		}
 		upcase(extension_ucase);
+
+		// Check if argument is a zip or 7z file
+
+		if (extension_ucase == "ZIP" || extension_ucase == "7Z") {
+			// TODO: Add more extensions?
+			const std::string physFSPath = path.filename().string() + Colon + argument + Colon;
+			LOG_MSG("Mounting as PHYSFS: '%s' using '%s' as write directory", argument.c_str(), path.filename().string().c_str());
+			ReMountDirAsDriveC(physFSPath);
+			has_dir_or_command = true;
+			break;
+		}
 
 		// Check if argument is a batch file
 

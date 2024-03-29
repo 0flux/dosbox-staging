@@ -330,6 +330,19 @@ std::string strip_suffix(const std::string_view str, const std::string_view suff
 	return std::string(str);
 }
 
+bool is_physfs_path(const std::string& path) noexcept
+{
+	// strchr(dir+(((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0),':')
+	// char *dir;
+	// dir = strchr(dir+(((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0),':');
+	// dir = strchr(dir+(((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0),':');
+	// dir = strchr(dir+(((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0),':');
+	// ((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0)
+
+	bool isPhysFS = (path.find(':',((path[0]|0x20) >= 'a' && (path[0]|0x20) <= 'z') ? 2 : 0) != std::string::npos);
+	return isPhysFS;
+}
+
 void clear_language_if_default(std::string &l)
 {
 	lowcase(l);

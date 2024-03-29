@@ -103,6 +103,8 @@ std::string strip_suffix(const std::string_view str,
 
 bool find_in_case_insensitive(const std::string& needle, const std::string& haystack);
 
+bool is_physfs_path(const std::string& path) noexcept;
+
 // Safely terminate a C string at the given offset
 //
 // Convert code like: stuff[n] = 0;

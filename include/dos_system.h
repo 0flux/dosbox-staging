@@ -228,16 +228,18 @@ private:
 #define MAX_OPENDIRS 2048
 //Can be high as it's only storage (16 bit variable)
 
+class DOS_Drive;
+
 class DOS_Drive_Cache {
 public:
 	enum TDirSort { NOSORT, ALPHABETICAL, DIRALPHABETICAL, ALPHABETICALREV, DIRALPHABETICALREV };
 	DOS_Drive_Cache            (void);
-	DOS_Drive_Cache            (const char* path);
+	DOS_Drive_Cache            (const char* path, DOS_Drive* drive);
 	DOS_Drive_Cache            (const DOS_Drive_Cache&) = delete; // prevent copying
 	DOS_Drive_Cache& operator= (const DOS_Drive_Cache&) = delete; // prevent assignment
 	~DOS_Drive_Cache           (void);
 
-	void SetBaseDir(const char *path);
+	void SetBaseDir(const char *path, DOS_Drive* drive);
 	void SetDirSort(TDirSort sort) { sortDirType = sort; }
 
 	bool  OpenDir              (const char* path, uint16_t& id);
@@ -316,6 +318,7 @@ private:
 
 	CFileInfo*	dirBase;
 	char		dirPath				[CROSS_LEN];
+	DOS_Drive*	dosDrive;
 	char		basePath			[CROSS_LEN];
 	TDirSort	sortDirType;
 	CFileInfo*	save_dir;
@@ -364,7 +367,6 @@ public:
 	virtual bool FileStat(const char* name, FileStat_Block * const stat_block)=0;
 	virtual uint8_t GetMediaByte(void)=0;
 	virtual void SetDir(const char *path);
-	virtual void EmptyCache() { dirCache.EmptyCache(); }
 	virtual bool isRemote(void)=0;
 	virtual bool isRemovable(void)=0;
 	virtual Bits UnMount(void)=0;
@@ -399,12 +401,18 @@ public:
 	DosDriveType type = DosDriveType::Unknown;
 
 	// Can be overridden for example in iso images
-	virtual const char *GetLabel() { return dirCache.GetLabel(); }
-
-	DOS_Drive_Cache dirCache;
+	virtual const char *GetLabel() { return "NOLABEL"; }
+	virtual void SetLabel(const char* /*label*/, bool /*iscdrom*/, bool /*updatable*/) {}
+	virtual void EmptyCache() {}
 
 	// disk cycling functionality (request resources)
 	virtual void Activate() {}
+
+	// these 4 may only be used by DOS_Drive_Cache because they have special calling conventions
+	virtual void* open_directory_vfunc(const char* /*dir*/) { return NULL; }
+	virtual void close_directory_vfunc(void* /*handle*/) {}
+	virtual bool read_directory_first_vfunc(void* /*handle*/, char* /*entry_name*/, bool& /*is_directory*/) { return false; }
+	virtual bool read_directory_next_vfunc(void* /*handle*/, char* /*entry_name*/, bool& /*is_directory*/) { return false; }
 };
 
 enum FatPermissionFlags : uint8_t { // 8-bit

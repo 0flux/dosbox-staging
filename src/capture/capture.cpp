@@ -42,7 +42,7 @@
 
 CHECK_NARROWING();
 
-static struct {
+struct {
 	std_fs::path path     = {};
 	bool path_initialised = false;
 

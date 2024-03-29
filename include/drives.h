@@ -115,6 +115,16 @@ public:
 	{
 		return basedir;
 	}
+	virtual const char *GetLabel() override { return dirCache.GetLabel(); }
+	virtual void SetLabel(const char* label, bool iscdrom, bool updatable) override { dirCache.SetLabel(label, iscdrom, updatable); }
+	virtual void EmptyCache(void) override { dirCache.EmptyCache(); }
+
+	virtual void* open_directory_vfunc(const char* dir) override;
+	virtual void close_directory_vfunc(void* handle) override;
+	virtual bool read_directory_first_vfunc(void* handle, char* entry_name, bool& is_directory) override;
+	virtual bool read_directory_next_vfunc(void* handle, char* entry_name, bool& is_directory) override;
+
+	DOS_Drive_Cache dirCache;
 
 protected:
 	char basedir[CROSS_LEN] = "";
@@ -126,6 +136,8 @@ private:
 	bool IsFirstEncounter(const std::string& filename);
 	bool always_open_ro_files;
 	std::unordered_set<std::string> write_protected_files;
+
+protected:
 	struct {
 		uint16_t bytes_sector;
 		uint8_t sectors_cluster;
@@ -546,6 +558,75 @@ private:
 	std::vector<std::string> DOSnames_cache; //Also set is probably better.
 	std::vector<std::string> DOSdirs_cache; //Can not blindly change its type. it is important that subdirs come after the parent directory.
 	const std::string special_prefix;
+};
+
+class physfsDrive : public localDrive {
+public:
+	physfsDrive(const char* startdir,
+				uint16_t _bytes_sector,
+				uint8_t _sectors_cluster,
+				uint16_t _total_clusters,
+				uint16_t _free_clusters,
+				uint8_t _mediaid);
+	virtual ~physfsDrive();
+
+	virtual bool FileOpen(DOS_File** file, char* name, uint32_t flags) override;
+	virtual bool FileCreate(DOS_File** file, char* name,
+							FatAttributeFlags attributes) override;
+	virtual bool FileUnlink(char* name) override;
+	virtual bool RemoveDir(char* dir) override;
+	virtual bool MakeDir(char* dir) override;
+	virtual bool TestDir(char* dir) override;
+	virtual bool FindFirst(char* _dir, DOS_DTA& dta, bool fcb_findfirst = false) override;
+	virtual bool FindNext(DOS_DTA& dta) override;
+	virtual bool GetFileAttr(char* name, FatAttributeFlags* attr) override;
+	virtual bool Rename(char* oldname, char* newname) override;
+	virtual bool AllocationInfo(uint16_t* _bytes_sector, uint8_t* _sectors_cluster,
+								uint16_t* _total_clusters,
+								uint16_t* _free_clusters) override;
+	virtual bool FileExists(const char* name) override;
+	virtual bool FileStat(const char* name, FileStat_Block* const stat_block) override;
+	virtual uint8_t GetMediaByte() override;
+	virtual bool isRemote() override;
+	virtual bool isRemovable() override;
+	// virtual const char *GetInfo() const override;
+
+	virtual void* open_directory_vfunc(const char* dir) override;
+	virtual void close_directory_vfunc(void* handle) override;
+	virtual bool read_directory_first_vfunc(void* handle, char* entry_name, bool& is_directory) override;
+	virtual bool read_directory_next_vfunc(void* handle, char* entry_name, bool& is_directory) override;
+private:
+	bool isdir(const char* dir);
+};
+
+class physfscdromDrive final : public physfsDrive
+{
+public:
+	physfscdromDrive(const char driveLetter,
+					 const char* startdir,
+					 uint16_t _bytes_sector,
+					 uint8_t _sectors_cluster,
+					 uint16_t _total_clusters,
+					 uint16_t _free_clusters,
+					 uint8_t _mediaid,
+					 int& error);
+	virtual bool FileOpen(DOS_File** file, char* name, uint32_t flags) override;
+	virtual bool FileCreate(DOS_File** file, char* name,
+							FatAttributeFlags attributes) override;
+	virtual bool FileUnlink(char* name) override;
+	virtual bool RemoveDir(char* dir) override;
+	virtual bool MakeDir(char* dir) override;
+	virtual bool FindFirst(char* _dir, DOS_DTA& dta, bool fcb_findfirst = false) override;
+	virtual bool GetFileAttr(char* name, FatAttributeFlags* attr) override;
+	virtual bool Rename(char* oldname, char* newname) override;
+	virtual void SetDir(const char* path) override;
+	virtual bool isRemote() override;
+	virtual bool isRemovable() override;
+	virtual Bits UnMount() override;
+	// virtual const char *GetInfo() const override;
+private:
+	uint8_t subUnit;
+	char driveLetter;
 };
 
 #endif

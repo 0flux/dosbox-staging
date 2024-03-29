@@ -78,6 +78,9 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 	}
 
 	if (!file_exists) {
+		safe_strcpy(newname, basedir);
+		safe_strcat(newname, name);
+		CROSS_FILENAME(newname);
 		dirCache.AddEntry(newname, true);
 	}
 
@@ -618,18 +621,39 @@ Bits localDrive::UnMount()
 	return 0;
 }
 
+/* helper functions for drive cache */
+void* localDrive::open_directory_vfunc(const char* name) {
+	return open_directory(name);
+}
+
+void localDrive::close_directory_vfunc(void* handle) {
+	// close_directory((dir_information*)handle);
+	close_directory(static_cast<dir_information*>(handle));
+}
+
+bool localDrive::read_directory_first_vfunc(void* handle, char* entry_name, bool& is_directory) {
+	// return read_directory_first((dir_information*)handle, entry_name, is_directory);
+	return read_directory_first(static_cast<dir_information*>(handle), entry_name, is_directory);
+}
+
+bool localDrive::read_directory_next_vfunc(void* handle, char* entry_name, bool& is_directory) {
+	// return read_directory_next((dir_information*)handle, entry_name, is_directory);
+	return read_directory_next(static_cast<dir_information*>(handle), entry_name, is_directory);
+}
+
 localDrive::localDrive(const char* startdir, uint16_t _bytes_sector,
                        uint8_t _sectors_cluster, uint16_t _total_clusters,
                        uint16_t _free_clusters, uint8_t _mediaid,
                        bool _always_open_ro_files)
-        : always_open_ro_files(_always_open_ro_files),
-          write_protected_files{},
-          allocation{_bytes_sector, _sectors_cluster, _total_clusters, _free_clusters, _mediaid}
+		: dirCache(),
+		  always_open_ro_files(_always_open_ro_files),
+		  write_protected_files{},
+		  allocation{_bytes_sector, _sectors_cluster, _total_clusters, _free_clusters, _mediaid}
 {
 	type = DosDriveType::Local;
 	safe_strcpy(basedir, startdir);
 	safe_strcpy(info, startdir);
-	dirCache.SetBaseDir(basedir);
+	dirCache.SetBaseDir(basedir, this);
 }
 
 // Updates the internal file's current position

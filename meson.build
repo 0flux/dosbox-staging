@@ -428,6 +428,7 @@ conf_data.set10('C_TRACY', get_option('tracy'))
 conf_data.set10('C_FPU', true)
 conf_data.set10('C_FPU_X86', host_machine.cpu_family() in ['x86', 'x86_64'])
 conf_data.set10('C_PRINTER', get_option('use_freetype2'))
+conf_data.set10('C_PHYSFS', get_option('use_physfs'))
 
 if get_option('enable_debugger') != 'none'
     conf_data.set10('C_DEBUG', true)
@@ -969,6 +970,22 @@ if get_option('use_freetype2')
     freetype2_summary_msg = freetype2_dep.found()
 endif
 summary('FreeType 2 support', freetype2_summary_msg)
+
+# PhysicsFS support
+physfs_dep = optional_dep
+physfs_summary_msg = 'Disabled'
+if get_option('use_physfs')
+    physfs_dep = dependency(
+        'physfs',
+        version: ['>= 3.0.2', '< 4'],
+        static: ('physfs' in static_libs_list),
+        fallback: [],
+        not_found_message: msg.format('use_physfs'),
+        include_type: 'system',
+    )
+    physfs_summary_msg = physfs_dep.found()
+endif
+summary('PhysicsFS support', physfs_summary_msg)
 
 # slirp (depends on glib)
 libslirp_dep = optional_dep

@@ -20,6 +20,7 @@ libdos_sources = files(
     'drive_iso.cpp',
     'drive_local.cpp',
     'drive_overlay.cpp',
+    'drive_physfs.cpp',
     'drive_virtual.cpp',
     'drives.cpp',
     'program_attrib.cpp',
@@ -58,6 +59,7 @@ libdos = static_library(
     dependencies: [
         sdl2_dep,
         sdl2_net_dep,
+        physfs_dep,
         libdecoders_dep,
         ghc_dep,
         libiir_dep,

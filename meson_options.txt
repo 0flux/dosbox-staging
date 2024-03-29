@@ -47,6 +47,13 @@ option(
     description: 'Enable FreeType 2 support',
 )
 
+option(
+    'use_physfs',
+    type: 'boolean',
+    value: true,
+    description: 'Enable PhysicsFS support',
+)
+
 # This option exists only for rare situations when Linux developer cannot
 # install ALSA library headers on their machine.
 #
@@ -215,6 +222,7 @@ option(
         'iir',
         'mt32emu',
         'opusfile',
+        'physfs',
         'png',
         'sdl2',
         'sdl2_net',

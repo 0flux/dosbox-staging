@@ -286,10 +286,13 @@ void MOUNT::Run(void) {
 			temp_line.pop_back();
 #endif
 
+		// bool is_physfs = (temp_line.find(':',((temp_line[0] | 0x20) >= 'a' && (temp_line[0] | 0x20) <= 'z') ? 2 : 0) != std::string::npos);
+		bool is_physfs = is_physfs_path(temp_line);
+
 		const std::string real_path = to_native_path(temp_line);
-		if (real_path.empty()) {
+		if (!is_physfs && real_path.empty()) {
 			LOG_MSG("MOUNT: Path '%s' not found", temp_line.c_str());
-		} else {
+		} else if (!is_physfs) {
 			const auto home_resolve = resolve_home(temp_line).string();
 			if (home_resolve == real_path) {
 				LOG_MSG("MOUNT: Path '%s' found",
@@ -303,14 +306,20 @@ void MOUNT::Run(void) {
 		}
 
 		struct stat test;
-		if (stat(temp_line.c_str(),&test)) {
+		if (!is_physfs && stat(temp_line.c_str(),&test)) {
 			WriteOut(MSG_Get("PROGRAM_MOUNT_ERROR_1"),temp_line.c_str());
 			return;
 		}
 		/* Not a switch so a normal directory/file */
-		if (!S_ISDIR(test.st_mode)) {
+		if (!is_physfs && !S_ISDIR(test.st_mode)) {
+#if C_PHYSFS
+			// Make it a physfs then...
+			is_physfs = true;
+			temp_line.insert(0, 1, ':');
+#else
 			WriteOut(MSG_Get("PROGRAM_MOUNT_ERROR_2"),temp_line.c_str());
 			return;
+#endif
 		}
 
 		if (temp_line[temp_line.size() - 1] != CROSS_FILESPLIT) temp_line += CROSS_FILESPLIT;
@@ -327,15 +336,31 @@ void MOUNT::Run(void) {
 			MSCDEX_SetCDInterface(CDROM_USE_SDL, num);
 
 			int error = 0;
-			newdrive  = std::make_unique<cdromDrive>(
-			        drive,
-			        temp_line.c_str(),
-			        sizes[0],
-			        int8_tize,
-			        sizes[2],
-			        0,
-			        mediaid,
-			        error);
+			if (is_physfs) {
+#if C_PHYSFS
+				newdrive  = std::make_unique<physfscdromDrive>(
+						drive,
+						temp_line.c_str(),
+						sizes[0],
+						int8_tize,
+						sizes[2],
+						0,
+						mediaid,
+						error);
+#else
+				LOG_MSG("ERROR:This build does not support physfs");
+#endif
+			} else {
+				newdrive  = std::make_unique<cdromDrive>(
+						drive,
+						temp_line.c_str(),
+						sizes[0],
+						int8_tize,
+						sizes[2],
+						0,
+						mediaid,
+						error);
+			}
 			// Check Mscdex, if it worked out...
 			switch (error) {
 				case 0  :	WriteOut(MSG_Get("MSCDEX_SUCCESS"));				break;
@@ -391,6 +416,18 @@ void MOUNT::Run(void) {
 								ldp->curdir);
 				}
 				Drives.at(drive_index(drive)) = nullptr;
+			} else if (is_physfs) {
+#if C_PHYSFS
+				newdrive = std::make_unique<physfsDrive>(
+					temp_line.c_str(),
+					sizes[0],
+					int8_tize,
+					sizes[2],
+					sizes[3],
+					mediaid);
+#else
+				LOG_MSG("ERROR:This build does not support physfs");
+#endif
 			} else {
 				newdrive = std::make_unique<localDrive>(
 				        temp_line.c_str(),
@@ -425,17 +462,17 @@ void MOUNT::Run(void) {
 		         drive);
 	/* check if volume label is given and don't allow it to updated in the future */
 	if (cmd->FindString("-label", label, true)) {
-		drive_pointer->dirCache.SetLabel(label.c_str(), iscdrom, false);
+		drive_pointer->SetLabel(label.c_str(), iscdrom, false);
 	}
 	/* For hard drives set the label to DRIVELETTER_Drive.
 	 * For floppy drives set the label to DRIVELETTER_Floppy.
 	 * This way every drive except cdroms should get a label.*/
 	else if (type == "dir" || type == "overlay") {
 		label = drive; label += "_DRIVE";
-		drive_pointer->dirCache.SetLabel(label.c_str(), iscdrom, false);
+		drive_pointer->SetLabel(label.c_str(), iscdrom, false);
 	} else if (type == "floppy") {
 		label = drive; label += "_FLOPPY";
-		drive_pointer->dirCache.SetLabel(label.c_str(), iscdrom, true);
+		drive_pointer->SetLabel(label.c_str(), iscdrom, true);
 	}
 	if (type == "floppy") incrementFDD();
 	return;
