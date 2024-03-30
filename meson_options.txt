@@ -40,6 +40,13 @@ option(
     description: 'Enable profiling using Tracy',
 )
 
+option(
+    'use_freetype2',
+    type: 'boolean',
+    value: true,
+    description: 'Enable FreeType 2 support',
+)
+
 # This option exists only for rare situations when Linux developer cannot
 # install ALSA library headers on their machine.
 #
@@ -203,6 +210,7 @@ option(
     type: 'array',
     choices: [
         'fluidsynth',
+        'freetype2',
         'glib',
         'iir',
         'mt32emu',

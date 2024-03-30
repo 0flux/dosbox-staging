@@ -39,6 +39,7 @@
 #include "program_mount.h"
 #include "program_mousectl.h"
 #include "program_move.h"
+#include "program_parallel.h"
 #include "program_placeholder.h"
 #include "program_rescan.h"
 #include "program_serial.h"
@@ -94,6 +95,7 @@ void Add_VFiles(const bool add_autoexec)
 	PROGRAMS_MakeFile("MOUNT.COM", ProgramCreate<MOUNT>);
 	PROGRAMS_MakeFile("MOUSECTL.COM", ProgramCreate<MOUSECTL>);
 	PROGRAMS_MakeFile("MOVE.EXE", ProgramCreate<MOVE>);
+	PROGRAMS_MakeFile("PARALLEL.COM", ProgramCreate<PARALLEL>);
 	PROGRAMS_MakeFile("RESCAN.COM", ProgramCreate<RESCAN>);
 	PROGRAMS_MakeFile("SERIAL.COM", ProgramCreate<SERIAL>);
 	PROGRAMS_MakeFile("SETVER.EXE", ProgramCreate<SETVER>);

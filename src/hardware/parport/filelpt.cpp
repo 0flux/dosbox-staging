@@ -1,0 +1,194 @@
+/*
+ *  Copyright (C) 2002-2006  The DOSBox Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
+
+#include "dosbox.h"
+
+#include "parport.h"
+#include "filelpt.h"
+#include "callback.h"
+#include "pic.h"
+// #include "hardware.h" //OpenCaptureFile
+#include "../../capture/capture.h"	// CAPTURE_CreateFile
+#include "printer_charmaps.h"
+#include <stdio.h>
+
+
+CFileLPT::CFileLPT(uint8_t nr, CommandLine* cmd)
+		: CParallel(nr, cmd)
+{
+	fileOpen = false;
+	codepage_ptr = NULL;
+
+	std::string str;
+
+	// add a formfeed when closing?
+	if (cmd->FindStringBegin("addFF", str, false)) addFF = true;
+
+	// add a linefeed when closing?
+	if (cmd->FindStringBegin("addLF", str, false)) addLF = true;
+
+	// find the codepage
+	if (cmd->FindStringBegin("cp:", str, false)) {
+		uint16_t temp = 0;
+		uint8_t i = 0;
+
+		if (sscanf(str.c_str(), "%hu", &temp) != 1) {
+			LOG_MSG("parallel%d: Invalid codepage parameter.", nr+1);
+			return;
+		}
+
+		while (charmap[i].codepage != 0) {
+			if (charmap[i].codepage == temp) {
+				codepage_ptr = charmap[i].map;
+				break;
+			}
+			i++;
+		}
+	}
+
+	if (cmd->FindStringBegin("timeout:", str, false)) {
+		if(sscanf(str.c_str(), "%u", &timeout) != 1) {
+			LOG_MSG("parallel%d: Invalid timeout parameter.", nr+1);
+			return;
+		}
+	} else timeout = 500;
+
+	if(cmd->FindStringBegin("dev:", str, false)) {
+		name = str.c_str();
+		filetype = FILE_DEV;
+	} else if(cmd->FindStringBegin("append:", str, false)) {
+		name = str.c_str();
+		filetype = FILE_APPEND;
+	} else filetype = FILE_CAPTURE;
+
+	InstallationSuccessful = true;
+}
+
+CFileLPT::~CFileLPT() {
+	// close file
+	if(fileOpen)
+		fclose(file);
+	// remove tick handler
+	removeEvent(0);
+}
+
+bool CFileLPT::OpenFile() {
+	switch(filetype) {
+	case FILE_DEV:
+		file = fopen(name.c_str(),"wb");
+		break;
+	case FILE_CAPTURE:
+		file = CAPTURE_CreateFile(CaptureType::ParallelLog);
+		break;
+	case FILE_APPEND:
+		file = fopen(name.c_str(),"ab");
+		break;
+	}
+
+	if(timeout != 0) setEvent(0, (float)(timeout + 1));
+
+	if(file==NULL) {
+		LOG_MSG("Parallel %d: Failed to open %s", port_index+1, name.c_str());
+		fileOpen = false;
+		return false;
+	} else {
+		fileOpen = true;
+		return true;
+	}
+}
+
+bool CFileLPT::Putchar(uint8_t val)
+{	
+#if PARALLEL_DEBUG
+	log_par(dbg_putchar,"putchar  0x%2x",val);
+	if(dbg_plainputchar) fprintf(debugfp,"%c",val);
+#endif
+	
+	// write to file (or not)
+	lastUsedTick = PIC_Ticks;
+	if(!fileOpen) if(!OpenFile()) return false;
+
+	if(codepage_ptr != nullptr) {
+		uint16_t extchar = codepage_ptr[val];
+		// if(extchar & 0xFF00) fputc((Bitu)(extchar >> 8), file);
+		// fputc((Bitu)(extchar & 0xFF), file);
+		if(extchar & 0xFF00) fputc((uint8_t)(extchar >> 8), file);
+		fputc((uint8_t)(extchar & 0xFF), file);
+
+	// } else fputc((Bitu)val,file);
+	} else fputc(val, file);
+	if(addLF) {
+		if((lastChar == 0x0d) && (val != 0x0a)) {
+			fputc(0xa,file);
+		}
+		lastChar = val;
+	}
+
+	return true;
+}
+uint8_t CFileLPT::Read_PR() {
+	return datareg;
+}
+uint8_t CFileLPT::Read_CON() {
+	return 0;
+}
+uint8_t CFileLPT::Read_SR() {
+	uint8_t status = 0x9f;
+	if (!ack) status |= 0x40;
+	ack = false;
+	return status;
+}
+
+void CFileLPT::Write_PR(uint8_t val) {
+	datareg = val;
+}
+void CFileLPT::Write_CON(uint8_t val) {
+	// init printer if bit 4 is switched on
+	// ...
+	autofeed = ((val & 0x02)!=0); // autofeed adds 0xa if 0xd is sent
+
+	// data is strobed to the parallel printer on the falling edge of strobe bit
+	if((!(val&0x1)) && (controlreg & 0x1)) {
+		Putchar(datareg);
+		if(autofeed && (datareg==0xd)) Putchar(0xa);
+		ack = true;
+	}
+	controlreg=val;
+}
+void CFileLPT::Write_IOSEL(uint8_t /*val*/) {
+	// not needed for file printing functionality
+}
+void CFileLPT::handleUpperEvent(uint16_t /*type*/) {
+	if(fileOpen) {
+		if(lastUsedTick + timeout < PIC_Ticks) {
+			if(addFF) {
+				fputc(12,file);
+			}
+			fclose(file);
+			lastChar = 0;
+			fileOpen=false;
+			LOG_MSG("Parallel %d: File closed.", port_index+1);
+		} else {
+			// Port has been touched in the meantime, try again later
+			float new_delay = (float)((timeout + 1) - (PIC_Ticks - lastUsedTick));
+			setEvent(0, new_delay);
+		}
+	}
+}
+

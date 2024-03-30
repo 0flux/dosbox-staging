@@ -38,7 +38,8 @@ enum class CaptureType {
 	RawImage,
 	UpscaledImage,
 	RenderedImage,
-	SerialLog
+	SerialLog,
+	ParallelLog
 };
 
 enum class CaptureState { Off, Pending, InProgress };

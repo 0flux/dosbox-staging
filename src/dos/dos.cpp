@@ -32,6 +32,7 @@
 #include "mem.h"
 #include "program_mount_common.h"
 #include "regs.h"
+#include "parport.h"
 #include "serialport.h"
 #include "setup.h"
 #include "string_utils.h"
@@ -208,8 +209,18 @@ static Bitu DOS_21Handler(void) {
 		}
 		break;
 	case 0x05:		/* Write Character to PRINTER */
-		E_Exit("DOS:Unhandled call %02X",reg_ah);
-		break;
+		//--Added 2012-09-11 by Alun Bestor for printer emulation 
+		{
+			for (int i=0; i<3; i++) {
+				// look up a parallel port
+				if (parallelports[i] != nullptr) {
+					parallelports[i]->Putchar(reg_dl);
+					break;
+				}
+			}
+			break;
+		}
+		//--End of modifications
 	case 0x06:		/* Direct Console Output / Input */
 		switch (reg_dl) {
 		case 0xFF:	/* Input */

@@ -110,6 +110,12 @@
 // Enable serial port passthrough support
 #mesondefine C_DIRECTSERIAL
 
+// Enable parallel port passthrough support
+#mesondefine C_DIRECTLPT
+
+// Enable printer emulation support
+#mesondefine C_PRINTER
+
 // Define to 1 to use opengl display output support
 #mesondefine C_OPENGL
 

@@ -427,6 +427,7 @@ conf_data.set10('C_MT32EMU', get_option('use_mt32emu'))
 conf_data.set10('C_TRACY', get_option('tracy'))
 conf_data.set10('C_FPU', true)
 conf_data.set10('C_FPU_X86', host_machine.cpu_family() in ['x86', 'x86_64'])
+conf_data.set10('C_PRINTER', get_option('use_freetype2'))
 
 if get_option('enable_debugger') != 'none'
     conf_data.set10('C_DEBUG', true)
@@ -439,6 +440,7 @@ endif
 foreach osdef : ['LINUX', 'WIN32', 'MACOSX', 'BSD']
     if conf_data.has(osdef)
         conf_data.set10('C_DIRECTSERIAL', true)
+        conf_data.set10('C_DIRECTLPT', true)
     endif
 endforeach
 
@@ -951,6 +953,22 @@ if get_option('use_sdl2_net')
 
 endif
 summary('SDL_net 2.0 support', sdl2_net_summary_msg)
+
+# FreeType 2 support
+freetype2_dep = optional_dep
+freetype2_summary_msg = 'Disabled'
+if get_option('use_freetype2')
+    freetype2_dep = dependency(
+        'freetype2',
+        version: ['>= 24.1.18', '< 25'],
+        static: ('freetype2' in static_libs_list),
+        fallback: [],
+        not_found_message: msg.format('use_freetype2'),
+        include_type: 'system',
+    )
+    freetype2_summary_msg = freetype2_dep.found()
+endif
+summary('FreeType 2 support', freetype2_summary_msg)
 
 # slirp (depends on glib)
 libslirp_dep = optional_dep

@@ -139,6 +139,7 @@ bool BIOS_AddKeyToBuffer(uint16_t code);
 void INT10_ReloadRomFonts();
 
 void BIOS_SetComPorts (uint16_t baseaddr[]);
+void BIOS_SetLPTPort(uint8_t port_idx, uint16_t baseaddr);
 
 bool BIOS_ConfigureTandyDacCallbacks(const std::optional<bool> maybe_request_dac = {});
 

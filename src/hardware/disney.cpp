@@ -23,6 +23,8 @@
 
 #include "channel_names.h"
 #include "checks.h"
+#include "bios.h"
+#include "mem.h"
 
 CHECK_NARROWING();
 
@@ -35,6 +37,12 @@ Disney::Disney() : LptDac(ChannelName::DisneySoundSourceDac, use_mixer_rate)
 void Disney::BindToPort(const io_port_t lpt_port)
 {
 	using namespace std::placeholders;
+
+	if(mem_readw(BIOS_ADDRESS_LPT1) != 0) {
+		printf("Disney conflicts with existing LPT1 hardware");
+		return;
+	}
+	BIOS_SetLPTPort(0, lpt_port);
 
 	// Register port handlers for 8-bit IO
 	const auto write_data = std::bind(&Disney::WriteData, this, _1, _2, _3);
@@ -124,5 +132,6 @@ void Disney::WriteControl(const io_port_t, const io_val_t value, const io_width_
 
 Disney::~Disney()
 {
+	BIOS_SetLPTPort(0, 0);
 	fifo = {};
 }

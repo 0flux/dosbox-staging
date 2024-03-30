@@ -47,6 +47,7 @@
 #include "mixer.h"
 #include "mouse.h"
 #include "ne2000.h"
+#include "parport.h"
 #include "pci_bus.h"
 #include "pic.h"
 #include "programs.h"
@@ -97,6 +98,7 @@ void TANDYSOUND_Init(Section*);
 void LPT_DAC_Init(Section *);
 void PS1AUDIO_Init(Section *);
 void SERIAL_Init(Section*);
+void PARALLEL_Init(Section*);
 
 #if C_IPX
 void IPX_Init(Section*);
@@ -1132,6 +1134,50 @@ void DOSBOX_Init()
 	pstring = secprop->Add_path("phonebookfile", only_at_start, "phonebook.txt");
 	pstring->Set_help("File used to map fake phone numbers to addresses\n"
 	                  "('phonebook.txt' by default).");
+
+#if C_PRINTER
+	// Configure printer
+	PRINTER_AddConfigSection(control);
+#endif
+
+	//--Added 2012-10-19 by Alun Bestor to allow parallel port emulation
+	// parallel ports
+	secprop = control->AddSection_prop("parallel", &PARALLEL_Init, changeable_at_runtime);
+#if C_PRINTER
+	pstring = secprop->Add_string("parallel1", when_idle, "printer");
+#else
+	pstring = secprop->Add_string("parallel1", when_idle, "disabled");
+#endif
+	pstring->Set_help(
+	        "parallel1-3 -- set type of device connected to lpt port.\n"
+	        "Can be:\n"
+	        "	reallpt (direct parallel port passthrough using Porttalk),\n"
+	        "	file (records data to a file or passes it to a device),\n"
+	        "	printer (virtual dot-matrix printer, see [printer] section)\n"
+	        "Additional parameters must be in the same line in the form of\n"
+	        "parameter:value.\n"
+	        "  for reallpt:\n"
+	        "    Windows:\n"
+	        "      realbase (the base address of your real parallel port).\n"
+	        "        Default: 378\n"
+	        "      ecpbase (base address of the ECP registers, optional).\n"
+	        "    Linux: realport (the parallel port device i.e. /dev/parport0).\n"
+	        "  for file: \n"
+	        "    dev:<devname> (i.e. dev:lpt1) to forward data to a device,\n"
+	        "    or append:<file> appends data to the specified file.\n"
+	        "    Without the above parameters data is written to files in the capture dir.\n"
+	        "    Additional parameters: timeout:<milliseconds> = how long to wait before\n"
+	        "    closing the file on inactivity (default:500), addFF to add a formfeed when\n"
+	        "    closing, addLF to add a linefeed if the app doesn't, cp:<codepage number>\n"
+	        "    to perform codepage translation, i.e. cp:437\n"
+	        "  for printer:\n"
+	        "    printer still has it's own configuration section above.");
+	pstring = secprop->Add_string("parallel2", when_idle, "disabled");
+	pstring->Set_help("see parallel1");
+
+	pstring = secprop->Add_string("parallel3", when_idle, "disabled");
+	pstring->Set_help("see parallel1");
+	//--End of modifications
 
 	// All the general DOS Related stuff, on real machines mostly located in
 	// CONFIG.SYS

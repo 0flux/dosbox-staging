@@ -28,6 +28,7 @@
 #include "bios.h"
 #include "dos_inc.h"
 #include "support.h"
+#include "parport.h"
 #include "drives.h"
 #include "dev_con.h"
 
@@ -310,19 +311,44 @@ public:
 	}
 };
 
-class device_LPT1 final : public device_NUL {
+class device_PRN final : public DOS_Device {
 public:
-	device_LPT1()
+	device_PRN()
 	{
-		SetName("LPT1");
+		SetName("PRN");
 	}
 	uint16_t GetInformation() override
 	{
 		return 0x80A0;
 	}
-	bool Read(uint8_t* /*data*/, uint16_t* /*size*/) override
+	bool Read(uint8_t* /*data*/, uint16_t* size) override
 	{
-		DOS_SetError(DOSERR_ACCESS_DENIED);
+		*size = 0;
+		LOG(LOG_DOSMISC, LOG_NORMAL)("PRNDEVICE:Read called");
+		LOG(LOG_DOSMISC, LOG_NORMAL)("%s:READ", GetName());
+		return true;
+	}
+	bool Seek(uint32_t* pos, uint32_t /*type*/) override
+	{
+		*pos = 0;
+		return true;
+	}
+	bool Write(uint8_t* data, uint16_t* size) override
+	{
+		for (int i=0; i<3; i++) {
+			// look up a parallel port
+			if (parallelports[i] != nullptr) {
+				// send the data
+				for (uint16_t j=0; j<*size; j++) {
+					if (!parallelports[i]->Putchar(data[j])) return false;
+				}
+				return true;
+			}
+		}
+ 		return false;
+ 	}	
+	bool Close() override
+	{
 		return false;
 	}
 };
@@ -571,7 +597,7 @@ void DOS_SetupDevices() {
 	newdev2=new device_NUL();
 	DOS_AddDevice(newdev2);
 	DOS_Device * newdev3;
-	newdev3=new device_LPT1();
+	newdev3=new device_PRN();
 	DOS_AddDevice(newdev3);
 }
 
