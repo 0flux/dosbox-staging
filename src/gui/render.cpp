@@ -339,7 +339,12 @@ void RENDER_Reinit()
 	RENDER_Init(get_render_section());
 }
 
+#ifdef BOXER_APP
+// --Modified 2009-10-18 by Alun Bestor: make unstatic to permit Boxer to call this function itself
+void render_reset(void)
+#else	// NOT BOXER_APP
 static void render_reset(void)
+#endif	// BOXER_APP
 {
 	static std::mutex render_reset_mutex;
 
@@ -351,6 +356,11 @@ static void render_reset(void)
 	// be called from the rendering callback, which might come from a video
 	// driver operating in a different thread or process.
 	std::lock_guard<std::mutex> guard(render_reset_mutex);
+
+#ifdef BOXER_APP
+	// --Added 2009-03-06 by Alun Bestor to allow Boxer to override DOSBox's scaler settings
+	boxer_applyRenderingStrategy();
+#endif	// BOXER_APP
 
 	uint16_t render_width_px = render.src.width;
 	bool double_width        = render.src.double_width;
