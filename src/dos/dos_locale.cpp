@@ -3260,6 +3260,11 @@ std::string DOS_GetLayoutFromHost()
 		return "la";
 	}
 #endif
+#ifdef BOXER_APP			
+	//--Added 2009-02-23 by Alun Bestor: if auto layout was specified, ask Boxer to provide a layout
+	const char *preferredLayout = boxer_preferredKeyboardLayout();
+	if (preferredLayout) return preferredLayout;
+#endif	// BOXER_APP
 	// TODO: On POSIX systems try to check environment variables to get
 	//       the language, in order: LANGUAGE, LC_ALL (and others), LANG.
 	//       Check LC_MESSAGES, LC_NUMERIC, LC_TIME, LC_MONETARY, even
