@@ -378,6 +378,36 @@ bool DOS_Drive_Cache::IsCachedIn(CFileInfo* curDir) {
 }
 
 
+#ifdef BOXER_APP
+// --Modified 2009-10-06 by Alun Bestor: this function is unused by DOSBox but provides a useful way for Boxer to look up short filenames.
+// However, in its original state it didn't work properly: it was comparing a filename to a full OS path, instead of a filename to a filename. This has now been modified to produce the intended result.
+bool DOS_Drive_Cache::GetShortName(const char* dirpath, const char*filename, char* shortname) {
+	// Get Dir Info
+	char expand[CROSS_LEN] = {0};
+	CFileInfo* theDir = FindDirInfo(dirpath,expand);
+	//printf("\nScanning folder: %s (expanded to: %s)\n\n", dirpath, expand);
+
+	std::vector<CFileInfo*>::size_type filelist_size = theDir->longNameList.size();
+	if (GCC_UNLIKELY(filelist_size<=0)) return false;
+
+	Bits i, numfiles = (Bits)(filelist_size);
+
+	for (i=0; i < numfiles; i++) {
+		//printf("Testing filename: %s\n", theDir->longNameList[i]->orgname);
+		
+		if (!strcmp(filename,theDir->longNameList[i]->orgname)) {
+			//printf("Found match: %s\n", theDir->longNameList[i]->shortname);
+			strcpy(shortname,theDir->longNameList[i]->shortname);
+			return true;
+		};
+	}
+
+	// The binary-search code would have been much more efficient than the above,
+	// but it was broken enough to skip element and I haven't debugged it yet
+	// to figure out which detail is wrong.
+	return false;
+}
+#else // NOT BOXER_APP
 bool DOS_Drive_Cache::GetShortName(const char* fullname, char* shortname) {
 	// Get Dir Info
 	char expand[CROSS_LEN] = {0};
@@ -406,6 +436,7 @@ bool DOS_Drive_Cache::GetShortName(const char* fullname, char* shortname) {
 	}
 	return false;
 }
+#endif	// BOXER_APP
 
 int DOS_Drive_Cache::CompareShortname(const char* compareName, const char* shortName) {
 	const char* cpos = strchr(shortName, '~');

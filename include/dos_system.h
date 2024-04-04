@@ -247,7 +247,12 @@ public:
 
 	void ExpandNameAndNormaliseCase(char* path);
 	char* GetExpandNameAndNormaliseCase(const char* path);
+#ifdef BOXER_APP
+	// --Modified 2009-10-06 by Alun Bestor: changed function signature to correspond to new implementation in drive_cache.cpp.
+	bool GetShortName(const char* dirpath, const char* filename, char* shortname);
+#else	// NOT BOXER_APP
 	bool GetShortName(const char* fullname, char* shortname);
+#endif	// BOXER_APP
 
 	bool  FindFirst            (char* path, uint16_t& id);
 	bool  FindNext             (uint16_t id, char* &result);
