@@ -201,12 +201,17 @@ static bool load_message_file(const std_fs::path &filename)
 
 const char* MSG_Get(const char* requested_name)
 {
+#ifdef BOXER_APP
+//--Modified 2009-02-23 by Alun Bestor: replaced this function to route all localizations off to our own translation files
+	return boxer_localizedStringForKey(requested_name);
+#else	// NOT BOXER_APP
 	const auto it = messages.find(requested_name);
 	if (it != messages.end()) {
 		return it->second.GetRendered();
 	}
 	LOG_WARNING("LANG: Message '%s' not found", requested_name);
 	return msg_not_found;
+#endif	// BOXER_APP
 }
 
 const char* MSG_GetRaw(const char* requested_name)
