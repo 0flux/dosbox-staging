@@ -237,6 +237,17 @@ bool DOS_Shell::WriteHelp(const std::string &command, char *args) {
 	return true;
 }
 
+#ifdef BOXER_APP
+//--Added 2009-02-23 by Alun Bestor to allow commands that expect arguments to display their help text when no arguments were provided
+#define HELP_IF_NO_ARGS(command) \
+	if (!strlen(args)) { \
+		char help_arg[] = "/?"; \
+		if (WriteHelp((command), help_arg)) return; \
+	} else { \
+		if (WriteHelp((command), args)) return; \
+	}
+#endif	// BOXER_APP
+
 #define HELP(command) if (WriteHelp((command), args)) return
 
 void DOS_Shell::CMD_CLS(char *args)
@@ -287,13 +298,21 @@ void DOS_Shell::CMD_CLS(char *args)
 }
 
 void DOS_Shell::CMD_DELETE(char * args) {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("DELETE");
+#else	// NOT BOXER_APP
 	HELP("DELETE");
+#endif	// BOXER_APP
 
+#ifndef BOXER_APP
+	//--Disabled 2009-02-24 by Alun Bestor: bailing out upon encountering unrecognised switches was preventing the use of unix/style/paths
 	char * rem=ScanCMDRemain(args);
 	if (rem) {
 		WriteOut(MSG_Get("SHELL_ILLEGAL_SWITCH"),rem);
 		return;
 	}
+#endif	// NOT BOXER_APP
 	/* If delete accept switches mind the space infront of them. See the dir /p code */
 
 	char full[DOS_PATHLENGTH];
@@ -482,6 +501,8 @@ void DOS_Shell::CMD_EXIT(char *args)
 }
 
 void DOS_Shell::CMD_CHDIR(char * args) {
+	// --Note 2009-02-24 by Alun Bestor: I would like to add implicit help for CD, but there's the possibility that batchfiles would
+	// send the output of CD to a file or env variable...
 	HELP("CHDIR");
 	StripSpaces(args);
 	uint8_t drive = DOS_GetDefaultDrive()+'A';
@@ -537,26 +558,46 @@ void DOS_Shell::CMD_CHDIR(char * args) {
 }
 
 void DOS_Shell::CMD_MKDIR(char * args) {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("MKDIR");
+#else
 	HELP("MKDIR");
+	//--End of modifications
+#endif
 	StripSpaces(args);
+#ifndef BOXER_APP
+	//--Disabled 2009-02-24 by Alun Bestor: bailing out upon encountering unrecognised switches was preventing the use of unix/style/paths
 	char * rem=ScanCMDRemain(args);
 	if (rem) {
 		WriteOut(MSG_Get("SHELL_ILLEGAL_SWITCH"),rem);
 		return;
 	}
+	//--End of modifications
+#endif
 	if (!DOS_MakeDir(args)) {
 		WriteOut(MSG_Get("SHELL_CMD_MKDIR_ERROR"),args);
 	}
 }
 
 void DOS_Shell::CMD_RMDIR(char * args) {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("RMDIR");
+#else
 	HELP("RMDIR");
+	//--End of modifications
+#endif
 	StripSpaces(args);
+#ifndef BOXER_APP
+	//--Disabled 2009-02-24 by Alun Bestor: bailing out upon encountering unrecognised switches was preventing the use of unix/style/paths
 	char * rem=ScanCMDRemain(args);
 	if (rem) {
 		WriteOut(MSG_Get("SHELL_ILLEGAL_SWITCH"),rem);
 		return;
 	}
+	//--End of modifications
+#endif
 	if (!DOS_RemoveDir(args)) {
 		WriteOut(MSG_Get("SHELL_CMD_RMDIR_ERROR"),args);
 	}
@@ -675,6 +716,9 @@ std::string to_search_pattern(const char* arg)
 	case '\0': // No arguments, search for all.
 		pattern = "*.*";
 		break;
+#ifdef BOXER_APP
+	case '/':  // --Added 2009-02-24 by Alun Bestor to support /Unix/delimited/paths
+#endif	// BOXER_APP
 	case '\\': // Handle \, C:\, etc.
 	case ':':  // Handle C:, etc.
 		pattern += "*.*";
@@ -844,11 +888,14 @@ void DOS_Shell::CMD_DIR(char* args)
 		option_reverse = true;
 	}
 
+#ifndef BOXER_APP
+	//--Disabled 2009-02-24 by Alun Bestor: bailing out upon encountering unrecognised switches was preventing the use of unix/style/paths
 	const char* rem = ScanCMDRemain(args);
 	if (rem) {
 		WriteOut(MSG_Get("SHELL_ILLEGAL_SWITCH"), rem);
 		return;
 	}
+#endif	// BOXER_APP
 
 	const std::string pattern = to_search_pattern(args);
 
@@ -1045,7 +1092,12 @@ struct copysource {
 
 void DOS_Shell::CMD_COPY(char* args)
 {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("COPY");
+#else	// NOT BOXER_APP
 	HELP("COPY");
+#endif	// BOXER_APP
 	static char defaulttarget[] = ".";
 	StripSpaces(args);
 	/* Command uses dta so set it to our internal dta */
@@ -1063,12 +1115,15 @@ void DOS_Shell::CMD_COPY(char* args)
 	(void)ScanCMDBool(args, "-Y");
 	(void)ScanCMDBool(args, "V");
 
+#ifndef BOXER_APP
+	// --Disabled 2009-02-24 by Alun Bestor: bailing out upon encountering unrecognised switches was preventing the use of unix/style/paths
 	char* rem = ScanCMDRemain(args);
 	if (rem) {
 		WriteOut(MSG_Get("SHELL_ILLEGAL_SWITCH"),rem);
 		dos.dta(save_dta);
 		return;
 	}
+#endif	// NOT BOXER_APP
 	// Gather all sources (extension to copy more then 1 file specified at command line)
 	// Concatenating files go as follows: All parts except for the last bear the concat flag.
 	// This construction allows them to be counted (only the non concat set)
@@ -1523,7 +1578,12 @@ void DOS_Shell::CMD_SET(char * args) {
 
 void DOS_Shell::CMD_IF(char* args)
 {
+#ifdef BOXER_APP
+	// --Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("IF");
+#else	// NOT BOXER_APP
 	HELP("IF");
+#endif	// BOXER_APP
 	StripSpaces(args,'=');
 	bool has_not=false;
 
@@ -1610,7 +1670,12 @@ void DOS_Shell::CMD_IF(char* args)
 }
 
 void DOS_Shell::CMD_GOTO(char * args) {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("GOTO");
+#else	// NOT BOXER_APP
 	HELP("GOTO");
+#endif	// BOXER_APP
 	StripSpaces(args);
 	if (batchfiles.empty()) return;
 	if (*args &&(*args == ':')) args++;
@@ -1639,7 +1704,12 @@ void DOS_Shell::CMD_SHIFT(char * args ) {
 }
 
 void DOS_Shell::CMD_TYPE(char * args) {
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("TYPE");
+#else	// NOT BOXER_APP
 	HELP("TYPE");
+#endif	// BOXER_APP
 	StripSpaces(args);
 	if (!*args) {
 		WriteOut(MSG_Get("SHELL_SYNTAX_ERROR"));
@@ -1680,7 +1750,13 @@ void DOS_Shell::CMD_PAUSE(char *args) {
 }
 
 void DOS_Shell::CMD_CALL(char * args){
+#ifdef BOXER_APP
+	//--Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("CALL");
+#else
 	HELP("CALL");
+	//--End of modifications
+#endif
 	this->call=true; /* else the old batchfile will be closed first */
 	this->ParseLine(args);
 	this->call=false;
@@ -1861,7 +1937,12 @@ void DOS_Shell::CMD_SUBST (char * args) {
 /* If more that one type can be substed think of something else
  * E.g. make basedir member dos_drive instead of localdrive
  */
+#ifdef BOXER_APP
+	// --Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("SUBST");
+#else	// NOT BOXER_APP
 	HELP("SUBST");
+#endif	// BOXER_APP
 	localDrive* ldp=nullptr;
 	char mountstring[DOS_PATHLENGTH+CROSS_LEN+20];
 	char temp_str[2] = { 0,0 };
@@ -1939,7 +2020,12 @@ void DOS_Shell::CMD_SUBST (char * args) {
 }
 
 void DOS_Shell::CMD_LOADHIGH(char *args){
+#ifdef BOXER_APP
+	// --Modified 2009-02-24 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("LOADHIGH");
+#else	// NOT BOXER_APP
 	HELP("LOADHIGH");
+#endif	// BOXER_APP
 	uint16_t umb_start=dos_infoblock.GetStartOfUMBChain();
 	uint8_t umb_flag=dos_infoblock.GetUMBChainState();
 	uint8_t old_memstrat=(uint8_t)(DOS_GetMemAllocStrategy()&0xff);
@@ -2549,7 +2635,12 @@ static std::string handle_wildcards(const std::string& wildcards,
 
 void DOS_Shell::CMD_RENAME(char* args)
 {
+#ifdef BOXER_APP
+	// --Modified 2010-12-29 by Alun Bestor to show help text when no arguments were given
+	HELP_IF_NO_ARGS("RENAME");
+#else	// NOT BOXER_APP
 	HELP("RENAME");
+#endif	// BOXER_APP
 
 	const std::string source = DOS_Canonicalize(strip_word(args));
 	const std::string target = strip_word(args);
