@@ -37,6 +37,8 @@
 #include "printer_redir.h"
 #include "filelpt.h"
 //#include "dos_inc.h"
+#include "checks.h"
+CHECK_NARROWING();
 
 
 // default ports & interrupts
@@ -115,8 +117,10 @@ static uint8_t PARALLEL_Read(io_port_t port, io_width_t /*iolen*/)
 	return retval;
 }
 
-static void PARALLEL_Write(io_port_t port, io_val_t val, io_width_t /*iolen*/)
+static void PARALLEL_Write(io_port_t port, io_val_t value, io_width_t /*iolen*/)
 {
+	const auto val = check_cast<uint8_t>(value);
+
 	for (uint8_t i=0; i<3; i++) {
 		if (!parallelports[i]) continue;
 		if (parallel_baseaddr[i] == (port & 0xfffc)) {
@@ -279,7 +283,7 @@ uint8_t CParallel::getPrinterStatus()
 	//LOG_MSG("get printer status: %x", statusreg);
 
 	statusreg ^= 0x48;
-	return statusreg &~ 0x7;
+	return (statusreg & uint8_t(~0x7));
 }
 
 

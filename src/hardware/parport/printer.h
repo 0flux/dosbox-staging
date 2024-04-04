@@ -158,86 +158,86 @@ private:
 	// Returns value of the num-th pixel (counting left-right, top-down) in a safe way
 	uint8_t getPixel(uint32_t num);
 
-	FT_Library FTlib;					// FreeType2 library used to render the characters
+	FT_Library FTlib = NULL;				// FreeType2 library used to render the characters
 
-	SDL_Surface* page;					// Surface representing the current page
-	FT_Face curFont;					// The font currently used to render characters
-	uint8_t color;
+	SDL_Surface* page = NULL;				// Surface representing the current page
+	FT_Face curFont = NULL;					// The font currently used to render characters
+	uint8_t color = 0;
 
-	Real64 curX, curY;					// Position of the print head (in inch)
+	double curX = 0, curY = 0;				// Position of the print head (in inch)
 
-	uint16_t dpi;							// dpi of the page
-	uint16_t ESCCmd;						// ESC-command that is currently processed
-	bool ESCSeen;						// True if last read character was an ESC (0x1B)
-	bool FSSeen;						// True if last read character was an FS (0x1C) (IBM commands)
+	uint16_t dpi = 0;						// dpi of the page
+	uint16_t ESCCmd = 0;					// ESC-command that is currently processed
+	bool ESCSeen = false;					// True if last read character was an ESC (0x1B)
+	bool FSSeen = false;					// True if last read character was an FS (0x1C) (IBM commands)
 
-	uint8_t numParam, neededParam;		// Numbers of parameters already read/needed to process command
+	uint8_t numParam = 0, neededParam = 0;	// Numbers of parameters already read/needed to process command
 
-	uint8_t params[20];					// Buffer for the read params
-	uint16_t style;						// Style of font (see STYLE_* constants)
-	Real64 cpi, actcpi;					// CPI value set by program and the actual one (taking in account font types)
-	uint8_t score;						// Score for lines (see SCORE_* constants)
+	uint8_t params[20] = {};				// Buffer for the read params
+	uint16_t style = 0;						// Style of font (see STYLE_* constants)
+	double cpi = 0, actcpi = 0;				// CPI value set by program and the actual one (taking in account font types)
+	uint8_t score = 0;						// Score for lines (see SCORE_* constants)
 
-	Real64 topMargin, bottomMargin, rightMargin, leftMargin;	// Margins of the page (in inch)
-	Real64 pageWidth, pageHeight;								// Size of page (in inch)
-	Real64 defaultPageWidth, defaultPageHeight;					// Default size of page (in inch)
-	Real64 lineSpacing;											// Size of one line (in inch)
+	double topMargin = 0, bottomMargin = 0, rightMargin = 0, leftMargin = 0;	// Margins of the page (in inch)
+	double pageWidth = 0, pageHeight = 0;										// Size of page (in inch)
+	double defaultPageWidth = 0, defaultPageHeight = 0;							// Default size of page (in inch)
+	double lineSpacing = 0;														// Size of one line (in inch)
 
-	Real64 horiztabs[32];				// Stores the set horizontal tabs (in inch)
-	uint8_t numHorizTabs;					// Number of configured tabs
+	double horiztabs[32] = {};				// Stores the set horizontal tabs (in inch)
+	uint8_t numHorizTabs = 0;				// Number of configured tabs
 
-	Real64 verttabs[16];				// Stores the set vertical tabs (in inch)
-	uint8_t numVertTabs;					// Number of configured tabs
+	double verttabs[16] = {};				// Stores the set vertical tabs (in inch)
+	uint8_t numVertTabs = 0;				// Number of configured tabs
 
-	uint8_t curCharTable;					// Currently used char table und charset
-	uint8_t printQuality;					// Print quality (see QUALITY_* constants)
+	uint8_t curCharTable = 0;				// Currently used char table und charset
+	uint8_t printQuality = 0;				// Print quality (see QUALITY_* constants)
 
-	Typeface LQtypeFace;				// Typeface used in LQ printing mode
+	Typeface LQtypeFace = Typeface(0);		// Typeface used in LQ printing mode
 
-	Real64 extraIntraSpace;				// Extra space between two characters (set by program, in inch)
+	double extraIntraSpace = 0;				// Extra space between two characters (set by program, in inch)
 
-	bool charRead;						// True if a character was read since the printer was last initialized
-	bool autoFeed;						// True if a LF should automatically added after a CR
-	bool printUpperContr;				// True if the upper command characters should be printed
+	bool charRead = false;					// True if a character was read since the printer was last initialized
+	bool autoFeed = false;					// True if a LF should automatically added after a CR
+	bool printUpperContr = false;			// True if the upper command characters should be printed
 
-	struct bitGraphicParams				// Holds information about printing bit images
+	struct bitGraphicParams					// Holds information about printing bit images
 	{
 		uint16_t horizDens, vertDens;		// Density of image to print (in dpi)
-		bool adjacent;					// Print adjacent pixels? (ignored)
+		bool adjacent;						// Print adjacent pixels? (ignored)
 		uint8_t bytesColumn;				// Bytes per column
-		uint16_t remBytes;				// Bytes left to read before image is done
-		uint8_t column[6];				// Bytes of the current and last column
+		uint16_t remBytes;					// Bytes left to read before image is done
+		uint8_t column[6];					// Bytes of the current and last column
 		uint8_t readBytesColumn;			// Bytes read so far for the current column
-	} bitGraph;
+	} bitGraph = {};
 
-	uint8_t densk, densl, densy, densz;	// Image density modes used in ESC K/L/Y/Z commands
+	uint8_t densk = 0, densl = 0, densy = 0, densz = 0;	// Image density modes used in ESC K/L/Y/Z commands
 
-	uint16_t curMap[256];					// Currently used ASCII => Unicode mapping
-	uint16_t charTables[4];				// Charactertables
+	uint16_t curMap[256] = {};				// Currently used ASCII => Unicode mapping
+	uint16_t charTables[4] = {};			// Charactertables
 
-	Real64 definedUnit;					// Unit used by some ESC/P2 commands (negative => use default)
+	double definedUnit = 0;					// Unit used by some ESC/P2 commands (negative => use default)
 
-	bool multipoint;					// If multipoint mode is enabled
-	Real64 multiPointSize;				// Point size of font in multipoint mode
-	Real64 multicpi;					// CPI used in multipoint mode
+	bool multipoint = false;				// If multipoint mode is enabled
+	double multiPointSize = 0;				// Point size of font in multipoint mode
+	double multicpi = 0;					// CPI used in multipoint mode
 
-	Real64 hmi;							// Horizontal motion index (in inch; overrides CPI settings)
+	double hmi = 0;							// Horizontal motion index (in inch; overrides CPI settings)
 
-	uint8_t msb;							// MSB mode
-	uint16_t numPrintAsChar;				// Number of bytes to print as characters (even when normally control codes)
+	uint8_t msb = 0;						// MSB mode
+	uint16_t numPrintAsChar = 0;			// Number of bytes to print as characters (even when normally control codes)
 
 #if defined (WIN32)
-	HDC printerDC;						// Win32 printer device
+	HDC printerDC = NULL;					// Win32 printer device
 #endif
 
-	char* output;						// Output method selected by user
-	void* outputHandle;					// If not null, additional pages will be appended to the given handle
-	bool multipageOutput;				// If true, all pages are combined to one file/print job etc. until the "eject page" button is pressed
-	uint16_t multiPageCounter;			// Current page (when printing multipages)
+	char* output = NULL;					// Output method selected by user
+	void* outputHandle = NULL;				// If not null, additional pages will be appended to the given handle
+	bool multipageOutput = false;			// If true, all pages are combined to one file/print job etc. until the "eject page" button is pressed
+	uint16_t multiPageCounter = 0;			// Current page (when printing multipages)
 
-	uint8_t ASCII85Buffer[4];				// Buffer used in ASCII85 encoding
-	uint8_t ASCII85BufferPos;				// Position in ASCII85 encode buffer
-	uint8_t ASCII85CurCol;				// Columns printed so far in the current lines
+	uint8_t ASCII85Buffer[4] = {};			// Buffer used in ASCII85 encoding
+	uint8_t ASCII85BufferPos = 0;			// Position in ASCII85 encode buffer
+	uint8_t ASCII85CurCol = 0;				// Columns printed so far in the current lines
 };
 
 #endif	// __PRINTER_H

@@ -18,6 +18,7 @@
 
 #include "printer.h"
 
+
 #if C_PRINTER
 
 #include "control.h"
@@ -146,9 +147,9 @@ void CPrinter::FillPalette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, ui
 	uint8_t colormask = colorID <<= 5;
 
 	for (int i=0; i<32; i++) {
-		pal->colors[i+colormask].r = 255 - (red * (float)i);
-		pal->colors[i+colormask].g = 255 - (green * (float)i);
-		pal->colors[i+colormask].b = 255 - (blue * (float)i);
+		pal->colors[i+colormask].r = 255 - (uint8_t)floor(red * (float)i);
+		pal->colors[i+colormask].g = 255 - (uint8_t)floor(green * (float)i);
+		pal->colors[i+colormask].b = 255 - (uint8_t)floor(blue * (float)i);
 	}
 }
 
@@ -165,19 +166,11 @@ CPrinter::CPrinter(uint16_t dpi, uint16_t width, uint16_t height, char* output, 
 		this->output = output;
 		this->multipageOutput = multipageOutput;
 
-		defaultPageWidth = (Real64)width/(Real64)10;
-		defaultPageHeight = (Real64)height/(Real64)10;
+		defaultPageWidth = (double)width/(double)10;
+		defaultPageHeight = (double)height/(double)10;
 
 		// Create page
-		page = SDL_CreateRGBSurface(
-						SDL_SWSURFACE, 
-						(Bitu)(defaultPageWidth*dpi), 
-						(Bitu)(defaultPageHeight*dpi), 
-						8, 
-						0, 
-						0, 
-						0, 
-						0);
+		page = SDL_CreateRGBSurface(SDL_SWSURFACE, (int)(defaultPageWidth*dpi), (int)(defaultPageHeight*dpi), 8, 0, 0, 0, 0);
 
 		// Set a grey palette
 		SDL_Palette* palette = page->format->palette;
@@ -272,7 +265,7 @@ void CPrinter::resetPrinter()
 		leftMargin = 0.0;
 		rightMargin = pageWidth = defaultPageWidth;
 		bottomMargin = pageHeight = defaultPageHeight;
-		lineSpacing = (Real64)1/6;
+		lineSpacing = (double)1/6;
 		cpi = 10.0;
 		curCharTable = 1;
 		style = 0;
@@ -301,8 +294,8 @@ void CPrinter::resetPrinter()
 		newPage(false,true);
 
 		// Default tabs => Each eight characters
-		for (Bitu i=0;i<32;i++)
-			horiztabs[i] = i*8*(1/(Real64)cpi);
+		for (Bitu i=0; i<32; i++)
+			horiztabs[i] = double(i) * 8 * (1 / (double)cpi);
 		numHorizTabs = 32;
 
 		numVertTabs = 255;
@@ -429,8 +422,8 @@ void CPrinter::updateFont()
 		curFont = NULL;
 	}
 
-	Real64 horizPoints = 10.5;
-	Real64 vertPoints = 10.5;
+	double horizPoints = 10.5;
+	double vertPoints = 10.5;
 
 	if (!multipoint) {
 		actcpi = cpi;
@@ -688,21 +681,21 @@ bool CPrinter::processCommandChar(uint8_t ch)
 
 	// Collect vertical tabs
 	if (ESCCmd == 0x42) {
-		if (ch == 0 || (numVertTabs>0 && verttabs[numVertTabs-1] > (Real64)ch*lineSpacing)) // Done
+		if (ch == 0 || (numVertTabs>0 && verttabs[numVertTabs-1] > (double)ch*lineSpacing)) // Done
 			ESCCmd = 0;
 		else
 			if (numVertTabs < 16)
-				verttabs[numVertTabs++] = (Real64)ch*lineSpacing;
+				verttabs[numVertTabs++] = (double)ch*lineSpacing;
 	}
 
 	// Collect horizontal tabs
 	if (ESCCmd == 0x44) 
 	{
-		if (ch == 0 || (numHorizTabs>0 && horiztabs[numHorizTabs-1] > (Real64)ch*(1/(Real64)cpi))) // Done
+		if (ch == 0 || (numHorizTabs>0 && horiztabs[numHorizTabs-1] > (double)ch*(1/(double)cpi))) // Done
 			ESCCmd = 0;
 		else
 			if (numHorizTabs < 32)
-				horiztabs[numHorizTabs++] = (Real64)ch*(1/(Real64)cpi);
+				horiztabs[numHorizTabs++] = (double)ch*(1/(double)cpi);
 	}
 
 	if (numParam < neededParam)
@@ -743,7 +736,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		case 0x20: // Set intercharacter space (ESC SP)
 			if (!multipoint)
 			{
-				extraIntraSpace = (Real64)params[0] / (printQuality==QUALITY_DRAFT?120:180);
+				extraIntraSpace = (double)params[0] / (printQuality==QUALITY_DRAFT?120:180);
 				hmi = -1;
 				updateFont();
 			}
@@ -780,28 +773,28 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			break;
 		case 0x24: // Set absolute horizontal print position (ESC $)
 			{
-				Real64 unitSize = definedUnit;
+				double unitSize = definedUnit;
 				if (unitSize < 0)
-					unitSize = (Real64)60.0;
+					unitSize = (double)60.0;
 
-				Real64 newX = leftMargin + ((Real64)PARAM16(0)/unitSize);
+				double newX = leftMargin + ((double)PARAM16(0)/unitSize);
 				if (newX <= rightMargin)
 					curX = newX;
 			}
 			break;
 		case 0x85a: // Print 24-bit hex-density graphics (FS Z)
-			setupBitImage(40, PARAM16(0));
+			setupBitImage(40, check_cast<uint16_t>(PARAM16(0)));
 			break;
 		case 0x2a: // Select bit image (ESC *)
-			setupBitImage(params[0], PARAM16(1));
+			setupBitImage(params[0], check_cast<uint16_t>(PARAM16(1)));
 			break;
 		case 0x2b: // Set n/360-inch line spacing (ESC +)
 		case 0x833: // Set n/360-inch line spacing (FS 3)
-			lineSpacing = (Real64)params[0]/360;
+			lineSpacing = (double)params[0]/360;
 			break;
 		case 0x2d: // Turn underline on/off (ESC -)
 			if (params[0] == 0 || params[0] == 48)
-				style &= ~STYLE_UNDERLINE;
+				style &= check_cast<uint16_t>(~STYLE_UNDERLINE);
 			if (params[0] == 1 || params[0] == 49)
 			{
 				style |= STYLE_UNDERLINE;
@@ -813,20 +806,20 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			// Ignore
 			break;
 		case 0x30: // Select 1/8-inch line spacing (ESC 0)
-			lineSpacing = (Real64)1/8;
+			lineSpacing = (double)1/8;
 			break;
 		case 0x32: // Select 1/6-inch line spacing (ESC 2)
-			lineSpacing = (Real64)1/6;
+			lineSpacing = (double)1/6;
 			break;
 		case 0x33: // Set n/180-inch line spacing (ESC 3)
-			lineSpacing = (Real64)params[0]/180;
+			lineSpacing = (double)params[0]/180;
 			break;
 		case 0x34: // Select italic font (ESC 4)
 			style |= STYLE_ITALICS;
 			updateFont();
 			break;
 		case 0x35: // Cancel italic font (ESC 5)
-			style &= ~STYLE_ITALICS;
+			style &= check_cast<uint16_t>(~STYLE_ITALICS);
 			updateFont();
 			break;
 		case 0x36: // Enable printing of upper control codes (ESC 6)
@@ -859,11 +852,11 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			break;
 		case 0x41: // Set n/60-inch line spacing
 		case 0x841:
-			lineSpacing = (Real64)params[0]/60;
+			lineSpacing = (double)params[0]/60;
 			break;
 		case 0x43: // Set page length in lines (ESC C)
 			if (params[0] != 0)
-				pageHeight = bottomMargin = (Real64)params[0] * lineSpacing;
+				pageHeight = bottomMargin = (double)params[0] * lineSpacing;
 			else // == 0 => Set page length in inches
 			{
 				neededParam = 1;
@@ -877,25 +870,25 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			updateFont();
 			break;
 		case 0x46: // Cancel bold font (ESC F)
-			style &= ~STYLE_BOLD;
+			style &= check_cast<uint16_t>(~STYLE_BOLD);
 			updateFont();
 			break;
 		case 0x47: // Select dobule-strike printing (ESC G)
 			style |= STYLE_DOUBLESTRIKE;
 			break;
 		case 0x48: // Cancel double-strike printing (ESC H)
-			style &= ~STYLE_DOUBLESTRIKE;
+			style &= check_cast<uint16_t>(~STYLE_DOUBLESTRIKE);
 			break;
 		case 0x4a: // Advance print position vertically (ESC J n)
-			curY += (Real64)((Real64)params[0] / 180);
+			curY += (double)((double)params[0] / 180);
 			if (curY > bottomMargin)
 				newPage(true,false);
 			break;
 		case 0x4b: // Select 60-dpi graphics (ESC K)
-			setupBitImage(densk, PARAM16(0));
+			setupBitImage(densk, check_cast<uint16_t>(PARAM16(0)));
 			break;
 		case 0x4c: // Select 120-dpi graphics (ESC L)
-			setupBitImage(densl, PARAM16(0));
+			setupBitImage(densl, check_cast<uint16_t>(PARAM16(0)));
 			break;
 		case 0x4d: // Select 10.5-point, 12-cpi (ESC M)
 			cpi = 12;
@@ -905,7 +898,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			break;
 		case 0x4e: // Set bottom margin (ESC N)
 			topMargin = 0.0;
-			bottomMargin = (Real64)params[0] * lineSpacing; 
+			bottomMargin = (double)params[0] * lineSpacing; 
 			break;
 		case 0x4f: // Cancel bottom (and top) margin
 			topMargin = 0.0;
@@ -918,7 +911,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			updateFont();
 			break;
 		case 0x51: // Set right margin
-			rightMargin = (Real64)(params[0]-1.0) / (Real64)cpi;
+			rightMargin = (double)(params[0]-1.0) / (double)cpi;
 			break;
 		case 0x52: // Select an international character set (ESC R)
 			if (params[0] <= 13 || params[0] == 64)
@@ -959,7 +952,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			{
 				hmi = -1;
 				if (params[0] == 0 || params[0] == 48)
-					style &= ~STYLE_DOUBLEWIDTH;
+					style &= check_cast<uint16_t>(~STYLE_DOUBLEWIDTH);
 				if (params[0] == 1 || params[0] == 49)
 					style |= STYLE_DOUBLEWIDTH;
 				updateFont();
@@ -975,34 +968,34 @@ bool CPrinter::processCommandChar(uint8_t ch)
 				if (params[0] == 1) // Proportional spacing
 					style |= STYLE_PROP;
 				else if (params[0] >= 5)
-					multicpi = (Real64)360 / (Real64)params[0];
+					multicpi = (double)360 / (double)params[0];
 			}
 			if (multiPointSize == 0)
-				multiPointSize = (Real64)10.5;
+				multiPointSize = (double)10.5;
 			if (PARAM16(1) > 0) // Set points
-				multiPointSize = ((Real64)PARAM16(1)) / 2;			
+				multiPointSize = ((double)PARAM16(1)) / 2;			
 			updateFont();
 			break;
 		case 0x59: // Select 120-dpi, double-speed graphics (ESC Y)
-			setupBitImage(densy, PARAM16(0));
+			setupBitImage(densy, check_cast<uint16_t>(PARAM16(0)));
 			break;
 		case 0x5a: // Select 240-dpi graphics (ESC Z)
-			setupBitImage(densz, PARAM16(0));
+			setupBitImage(densz, check_cast<uint16_t>(PARAM16(0)));
 			break;
 		case 0x5c: // Set relative horizontal print position (ESC \)
 			{
-				int16_t toMove = PARAM16(0);
-				Real64 unitSize = definedUnit;
+				int16_t toMove = check_cast<int16_t>(PARAM16(0));
+				double unitSize = definedUnit;
 				if (unitSize < 0)
-					unitSize = (Real64)(printQuality==QUALITY_DRAFT?120.0:180.0);
-				curX += (Real64)((Real64)toMove / unitSize);
+					unitSize = (double)(printQuality==QUALITY_DRAFT?120.0:180.0);
+				curX += (double)((double)toMove / unitSize);
 			}
 			break;
 		case 0x61: // Select justification (ESC a)
 			// Ignore
 			break;
 		case 0x63: // Set horizontal motion index (HMI) (ESC c)
-			hmi = (Real64)PARAM16(0) / (Real64)360.0;
+			hmi = (double)PARAM16(0) / (double)360.0;
 			extraIntraSpace = 0.0;
 			break;
 		case 0x67: // Select 10.5-point, 15-cpi (ESC g)
@@ -1016,7 +1009,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			break;
 		case 0x6a: // Reverse paper feed (ESC j)
 			{
-				Real64 reverse = (Real64)PARAM16(0) / (Real64)216.0;
+				double reverse = (double)PARAM16(0) / (double)216.0;
 				reverse = curY - reverse;
 				if(reverse < leftMargin) curY = leftMargin;
 				else curY = reverse;
@@ -1028,7 +1021,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			updateFont();
 			break;
 		case 0x6c: // Set left margin (ESC l)
-			leftMargin =  (Real64)(params[0]-1.0) / (Real64)cpi;
+			leftMargin =  (double)(params[0]-1.0) / (double)cpi;
 			if (curX < leftMargin)
 				curX = leftMargin;
 			break;
@@ -1065,7 +1058,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			if (!multipoint)
 			{
 				if (params[0] == 0 || params[0] == 48)
-					style &= ~STYLE_DOUBLEHEIGHT;
+					style &= check_cast<uint16_t>(~STYLE_DOUBLEHEIGHT);
 				if (params[0] == 1 || params[0] == 49)
 					style |= STYLE_DOUBLEHEIGHT;
 				updateFont();
@@ -1078,18 +1071,18 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			}
 			if (params[0] == 1 || params[0] == 49) {
 				printQuality = QUALITY_LQ;
-				style &= ~STYLE_CONDENSED;
+				style &= check_cast<uint16_t>(~STYLE_CONDENSED);
 			}
 			hmi = -1;
 			updateFont();
 			break;
 		case 0x100: // Set page length in inches (ESC C NUL)
-			pageHeight = (Real64)params[0];
+			pageHeight = (double)params[0];
 			bottomMargin = pageHeight;
 			topMargin = 0.0;
 			break;
 		case 0x101: // Skip unsupported ESC ( command
-			neededParam = PARAM16(0);
+			neededParam = check_cast<uint8_t>(PARAM16(0));
 			numParam = 0;
 			break;
 		case 0x274: // Assign character table (ESC (t)
@@ -1102,7 +1095,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			}
 			break;
 		case 0x22d: // Select line/score (ESC (-) 
-			style &= ~(STYLE_UNDERLINE | STYLE_STRIKETHROUGH | STYLE_OVERSCORE);
+			style &= check_cast<uint16_t>(~(STYLE_UNDERLINE | STYLE_STRIKETHROUGH | STYLE_OVERSCORE));
 			score = params[4];
 			if (score)
 			{
@@ -1118,25 +1111,25 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		case 0x242: // Bar code setup and print (ESC (B)
 			LOG(LOG_MISC,LOG_ERROR)("PRINTER: Bardcode printing not supported");
 			// Find out how many bytes to skip
-			neededParam = PARAM16(0);
+			neededParam = check_cast<uint8_t>(PARAM16(0));
 			numParam = 0;
 			break;
 		case 0x243: // Set page length in defined unit (ESC (C)
 			if (params[0] != 0 && definedUnit > 0)
 			{
-				pageHeight = bottomMargin = ((Real64)PARAM16(2)) * definedUnit;
+				pageHeight = bottomMargin = ((double)PARAM16(2)) * definedUnit;
 				topMargin = 0.0;
 			}
 			break;
 		case 0x255: // Set unit (ESC (U)
-			definedUnit = (Real64)params[2] / (Real64)3600;
+			definedUnit = (double)params[2] / (double)3600;
 			break;
 		case 0x256: // Set absolute vertical print position (ESC (V)
 			{
-				Real64 unitSize = definedUnit;
+				double unitSize = definedUnit;
 				if (unitSize < 0)
-					unitSize = (Real64)360.0;
-				Real64 newPos = topMargin + (((Real64)PARAM16(2)) * unitSize);
+					unitSize = (double)360.0;
+				double newPos = topMargin + (((double)PARAM16(2)) * unitSize);
 				if (newPos > bottomMargin)
 					newPage(true,false);
 				else
@@ -1144,14 +1137,14 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			}
 			break;
 		case 0x25e: // Print data as characters (ESC (^)
-			numPrintAsChar = PARAM16(0);
+			numPrintAsChar = check_cast<uint16_t>(PARAM16(0));
 			break;
 		case 0x263: // Set page format (ESC (c)
 			if (definedUnit > 0)
 			{
-				Real64 newTop, newBottom;
-				newTop = ((Real64)PARAM16(2)) * definedUnit;
-				newBottom = ((Real64)PARAM16(4)) * definedUnit;
+				double newTop, newBottom;
+				newTop = ((double)PARAM16(2)) * definedUnit;
+				newBottom = ((double)PARAM16(4)) * definedUnit;
 				if(newTop >= newBottom) break;
 				if(newTop < pageHeight) topMargin = newTop;
 				if(newBottom < pageHeight) bottomMargin = newBottom;
@@ -1163,10 +1156,10 @@ bool CPrinter::processCommandChar(uint8_t ch)
 			break;
 		case 0x276: // Set relative vertical print position (ESC (v)
 			{
-				Real64 unitSize = definedUnit;
+				double unitSize = definedUnit;
 				if (unitSize < 0)
-					unitSize = (Real64)360.0;
-				Real64 newPos = curY + ((Real64)((int16_t)PARAM16(2)) * unitSize);
+					unitSize = (double)360.0;
+				double newPos = curY + ((double)((int16_t)PARAM16(2)) * unitSize);
 				if (newPos > topMargin)
 				{
 					if (newPos > bottomMargin)
@@ -1198,7 +1191,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		return true;
 	case 0x08:	// Backspace (BS)
 		{
-			Real64 newX = curX - (1/(Real64)actcpi);
+			double newX = curX - (1/(double)actcpi);
 			if (hmi > 0)
 				newX = curX - hmi;
 			if (newX >= leftMargin)
@@ -1208,7 +1201,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 	case 0x09:	// Tab horizontally (HT)
 		{
 			// Find tab right to current pos
-			Real64 moveTo = -1;
+			double moveTo = -1;
 			for (uint8_t i=0; i<numHorizTabs; i++)
 				if (horiztabs[i] > curX)
 					moveTo = horiztabs[i];
@@ -1230,7 +1223,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		else
 		{
 			// Find tab below current pos
-			Real64 moveTo = -1;
+			double moveTo = -1;
 			for (uint8_t i=0; i<numVertTabs; i++)
 				if (verttabs[i] > curY)
 					moveTo = verttabs[i];
@@ -1257,8 +1250,10 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		return true;
 	case 0x0d:		// Carriage Return (CR)
 		curX = leftMargin;
-		if (!autoFeed)
+		if (!autoFeed) {
 			return true;
+		}
+		// fallthrough
 	case 0x0a:		// Line feed
 		if (style & STYLE_DOUBLEWIDTHONELINE)
 		{
@@ -1270,7 +1265,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		if (curY > bottomMargin)
 			newPage(true,false);
 		return true;
-	case 0x0e:		//Select Real64-width printing (one line) (SO)
+	case 0x0e:		//Select double-width printing (one line) (SO)
 		if (!multipoint)
 		{
 			hmi = -1;
@@ -1290,7 +1285,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		return true;
 	case 0x12:		// Cancel condensed printing (DC2)
 		hmi = -1;
-		style &= ~STYLE_CONDENSED;
+		style &= check_cast<uint16_t>(~STYLE_CONDENSED);
 		updateFont();
 		return true;
 	case 0x13:		// Deselect printer (DC3)
@@ -1298,7 +1293,7 @@ bool CPrinter::processCommandChar(uint8_t ch)
 		return true;
 	case 0x14:		// Cancel double-width printing (one line) (DC4)
 		hmi = -1;
-		style &= ~STYLE_DOUBLEWIDTHONELINE;
+		style &= check_cast<uint16_t>(~STYLE_DOUBLEWIDTHONELINE);
 		updateFont();
 		return true;
 	case 0x18:		// Cancel line (CAN)
@@ -1378,10 +1373,10 @@ void CPrinter::printChar(uint8_t ch)
 	// Render a high-quality bitmap
 	FT_Render_Glyph(curFont->glyph, FT_RENDER_MODE_NORMAL);
 
-	uint16_t penX = PIXX + curFont->glyph->bitmap_left;
-	uint16_t penY = PIXY - curFont->glyph->bitmap_top + curFont->size->metrics.ascender/64;
+	uint16_t penX = uint16_t(PIXX + Bitu(curFont->glyph->bitmap_left));
+	uint16_t penY = uint16_t(PIXY - Bitu(curFont->glyph->bitmap_top) + Bitu(curFont->size->metrics.ascender / 64));
 
-	if (style & STYLE_SUBSCRIPT) penY += curFont->glyph->bitmap.rows / 2;
+	if (style & STYLE_SUBSCRIPT) penY += uint16_t(curFont->glyph->bitmap.rows / 2);
 
 	// Copy bitmap into page
 	SDL_LockSurface(page);
@@ -1405,14 +1400,14 @@ void CPrinter::printChar(uint8_t ch)
 	SDL_UnlockSurface(page);
 
 	// For line printing
-	uint16_t lineStart = PIXX;
+	uint16_t lineStart = uint16_t(PIXX);
 
 	// advance the cursor to the right
-	Real64 x_advance;
+	double x_advance;
 	if (style &	STYLE_PROP)
-		x_advance = (Real64)((Real64)(curFont->glyph->advance.x)/(Real64)(dpi*64));
+		x_advance = (double)((double)(curFont->glyph->advance.x)/(double)(dpi*64));
 	else {
-		if (hmi < 0) x_advance = 1/(Real64)actcpi;
+		if (hmi < 0) x_advance = 1/(double)actcpi;
 		else x_advance = hmi;
 	}
 	x_advance += extraIntraSpace;
@@ -1423,18 +1418,23 @@ void CPrinter::printChar(uint8_t ch)
 		(STYLE_UNDERLINE|STYLE_STRIKETHROUGH|STYLE_OVERSCORE)))
 	{
 		// Find out where to put the line
-		uint16_t lineY = PIXY;
-		double height = (curFont->size->metrics.height>>6); // TODO height is fixed point madness...
+		uint16_t lineY = uint16_t(PIXY);
+		double height = double(curFont->size->metrics.height >> 6); // TODO height is fixed point madness...
 
-		if (style & STYLE_UNDERLINE) lineY = PIXY + (uint16_t)(height*0.9);
-		else if (style & STYLE_STRIKETHROUGH) lineY = PIXY + (uint16_t)(height*0.45);
-		else if (style & STYLE_OVERSCORE)
-			lineY = PIXY - (((score == SCORE_DOUBLE)||(score == SCORE_DOUBLEBROKEN))?5:0);
+		if (style & STYLE_UNDERLINE)
+			lineY = uint16_t(PIXY) + (uint16_t)(height * 0.9);
+		else if (style & STYLE_STRIKETHROUGH)
+			lineY = uint16_t(PIXY) + (uint16_t)(height * 0.45);
+		else if (style & STYLE_OVERSCORE) {
+			// WHY?? lineY = uint16_t(PIXY) - uint16_t(((score == SCORE_DOUBLE) || (score == SCORE_DOUBLEBROKEN)) ? 5 : 0);
+			auto offset = uint16_t(((score == SCORE_DOUBLE) || (score == SCORE_DOUBLEBROKEN)) ? 5u : 0u);
+			lineY = uint16_t(PIXY) - offset;
+		}
 
-		drawLine(lineStart, PIXX, lineY, score==SCORE_SINGLEBROKEN || score==SCORE_DOUBLEBROKEN);
+		drawLine(lineStart, PIXX, lineY, score == SCORE_SINGLEBROKEN || score == SCORE_DOUBLEBROKEN);
 
 		// draw second line if needed
-		if ((score == SCORE_DOUBLE)||(score == SCORE_DOUBLEBROKEN))
+		if ((score == SCORE_DOUBLE) || (score == SCORE_DOUBLEBROKEN))
 			drawLine(lineStart, PIXX, lineY + 5, score==SCORE_SINGLEBROKEN || score==SCORE_DOUBLEBROKEN);
 	}
 	// If the next character would go beyond the right margin, line-wrap.
@@ -1449,11 +1449,11 @@ void CPrinter::blitGlyph(FT_Bitmap bitmap, uint16_t destx, uint16_t desty, bool 
 	for (Bitu y=0; y<bitmap.rows; y++) {
 		for (Bitu x=0; x<bitmap.width; x++) {
 			// Read pixel from glyph bitmap
-			uint8_t source = *(bitmap.buffer + x + y*bitmap.pitch);
+			uint8_t source = *(bitmap.buffer + x + y * Bitu(bitmap.pitch));
 
 			// Ignore background and don't go over the border
-			if (source > 0 && (destx+x < page->w) && (desty+y < page->h) ) {
-				uint8_t* target = (uint8_t*)page->pixels + (x+destx) + (y+desty)*page->pitch;
+			if (source > 0 && (destx + x < Bitu(page->w)) && (desty + y < Bitu(page->h))) {
+				uint8_t* target = (uint8_t*)page->pixels + (x + destx) + (y + desty) * Bitu(page->pitch);
 				source>>=3;
 				
 				if (add) {
@@ -1474,20 +1474,20 @@ void CPrinter::drawLine(Bitu fromx, Bitu tox, Bitu y, bool broken)
 	SDL_LockSurface(page);
 
 	Bitu breakmod = dpi / 15;
-	Bitu gapstart = (breakmod * 4)/5;
+	Bitu gapstart = (breakmod * 4) / 5;
 
 	// Draw anti-aliased line
 	for (Bitu x=fromx; x<=tox; x++)
 	{
 		// Skip parts if broken line or going over the border
-		if ((!broken || (x%breakmod <= gapstart)) && (x < page->w))
+		if ((!broken || (x % breakmod <= gapstart)) && (x < Bitu(page->w)))
 		{
-			if (y > 0 && (y-1) < page->h)
-				*((uint8_t*)page->pixels + x + (y-1)*page->pitch) = 240;
-			if (y < page->h)
-				*((uint8_t*)page->pixels + x + y*page->pitch) = !broken?255:240;
-			if (y+1 < page->h)
-				*((uint8_t*)page->pixels + x + (y+1)*page->pitch) = 240;
+			if (y > 0 && (y - 1) < Bitu(page->h))
+				*((uint8_t*)page->pixels + x + (y - 1) * Bitu(page->pitch)) = 240;
+			if (y < Bitu(page->h))
+				*((uint8_t*)page->pixels + x + y * Bitu(page->pitch)) = !broken ? 255: 240;
+			if (y + 1 < Bitu(page->h))
+				*((uint8_t*)page->pixels + x + (y + 1) * Bitu(page->pitch)) = 240;
 		}
 	}
 	SDL_UnlockSurface(page);
@@ -1619,7 +1619,7 @@ void CPrinter::printBitGraph(uint8_t ch)
 	if (bitGraph.readBytesColumn < bitGraph.bytesColumn)
 		return;
 
-	Real64 oldY = curY;
+	double oldY = curY;
 
 	SDL_LockSurface(page);
 
@@ -1641,12 +1641,12 @@ void CPrinter::printBitGraph(uint8_t ch)
 			if (bitGraph.column[i] & j) {
 				for (Bitu xx=0; xx<pixsizeX; xx++)
 					for (Bitu yy=0; yy<pixsizeY; yy++) {
-						if (((PIXX + xx) < page->w) && ((PIXY + yy) < page->h))
-							*((uint8_t*)page->pixels + (PIXX+xx) + (PIXY+yy)*page->pitch) |= (color|0x1F);
+						if (((PIXX + xx) < Bitu(page->w)) && ((PIXY + yy) < Bitu(page->h)))
+							*((uint8_t*)page->pixels + (PIXX + xx) + (PIXY + yy) * Bitu(page->pitch)) |= (color | 0x1F);
 					}
 			} // else white pixel
 
-			curY += (Real64)1/(Real64)bitGraph.vertDens; // TODO line wrap?
+			curY += (double)1/(double)bitGraph.vertDens; // TODO line wrap?
 		}
 	}
 
@@ -1657,7 +1657,7 @@ void CPrinter::printBitGraph(uint8_t ch)
 	bitGraph.readBytesColumn = 0;
 
 	// Advance to the left
-	curX += (Real64)1/(Real64)bitGraph.horizDens;
+	curX += (double)1/(double)bitGraph.horizDens;
 }
 
 void CPrinter::formFeed()
@@ -1668,10 +1668,10 @@ void CPrinter::formFeed()
 	finishMultipage();
 }
 
-static void findNextName(char* front, char* ext, char* fname) {
-	Bitu i = 1;
-	if (document_path.length() > (200-15)) {
-		fname[0]=0;
+static void findNextName(const char* front, const char* ext, char* fname) {
+	int i = 1;
+	if (document_path.length() > (200 - 15)) {
+		fname[0] = 0;
 		return;
 	}
 	FILE *test = NULL;
@@ -1682,11 +1682,10 @@ static void findNextName(char* front, char* ext, char* fname) {
 #else 
 		const char* const pathstring = "/%s%d%s";
 #endif
-		sprintf(fname+strlen(fname), pathstring, front,i++,ext);
+		sprintf(fname + strlen(fname), pathstring, front, i++, ext);
 		test = fopen(fname, "rb");
-		if (test != NULL)
-			fclose(test);
-	} while (test != NULL );
+		if (test != NULL) fclose(test);
+	} while (test != NULL);
 }
 
 void CPrinter::outputPage() 
@@ -1703,17 +1702,17 @@ void CPrinter::outputPage()
 		uint16_t physW = GetDeviceCaps(printerDC, PHYSICALWIDTH);
 		uint16_t physH = GetDeviceCaps(printerDC, PHYSICALHEIGHT);
 
-		Real64 scaleW, scaleH;
+		double scaleW, scaleH;
 
 		if (page->w > physW) 
-	        scaleW = (Real64)page->w / (Real64)physW;
+	        scaleW = (double)page->w / (double)physW;
 	    else 
-			scaleW = (Real64)physW / (Real64)page->w; 
+			scaleW = (double)physW / (double)page->w; 
  
 		if (page->h > physH) 
-	        scaleH = (Real64)page->h / (Real64)physH;
+	        scaleH = (double)page->h / (double)physH;
 	    else 
-			scaleH = (Real64)physH / (Real64)page->h; 
+			scaleH = (double)physH / (double)page->h; 
 
 		HDC memHDC = CreateCompatibleDC(printerDC);
 		HBITMAP bitmap = CreateCompatibleBitmap(memHDC, page->w, page->h);
@@ -1900,7 +1899,7 @@ void CPrinter::outputPage()
 		SDL_LockSurface(page);
 
 		uint32_t pix = 0;
-		uint32_t numpix = page->h*page->w;
+		uint32_t numpix = check_cast<uint32_t>(page->h * page->w);
 		ASCII85BufferPos = ASCII85CurCol = 0;
 
 		while (pix < numpix)
@@ -1994,7 +1993,7 @@ void CPrinter::fprintASCII85(FILE* f, uint16_t b)
 				char buffer[5];
 				for (int8_t i=4; i>=0; i--)
 				{
-					buffer[i] = (uint8_t)((uint32_t)num % (uint32_t)85);
+					buffer[i] = (char)((uint32_t)num % (uint32_t)85);
 					buffer[i] += 33;
 					num /= (uint32_t)85;
 				}
@@ -2071,7 +2070,7 @@ bool CPrinter::isBlank() {
 
 uint8_t CPrinter::getPixel(uint32_t num) {
 	// Respect the pitch
-	return *((uint8_t*)page->pixels + (num % page->w) + ((num / page->w) * page->pitch));
+	return *((uint8_t*)page->pixels + (num % uint32_t(page->w)) + ((num / uint32_t(page->w)) * uint32_t(page->pitch)));
 }
 
 static uint8_t dataregister; // contents of the parallel port data register
@@ -2081,7 +2080,7 @@ Bitu PRINTER_readdata(Bitu /*port*/, Bitu /*iolen*/) {
 }
 
 void PRINTER_writedata(Bitu /*port*/, Bitu val, Bitu /*iolen*/) {
-	dataregister = val;
+	dataregister = check_cast<uint8_t>(val);
 }
 
 uint8_t controlreg = 0x04;
@@ -2094,7 +2093,7 @@ Bitu PRINTER_readstatus(Bitu /*port*/, Bitu /*iolen*/) {
 		return 0xDF;
 
 	// Printer is always online and never reports an error
-	uint8_t status =0x1f;// 0x18;
+	uint8_t status = 0x1f; // 0x18;
 
 //	if (controlreg&0x08==0)
 //		status |= 0x10;
@@ -2138,21 +2137,20 @@ void PRINTER_writecontrol(Bitu /*port*/, Bitu val, Bitu /*iolen*/) {
 		defaultPrinter->resetPrinterHard();
 
 	// data is strobed to the parallel printer on the falling edge of strobe bit
-	if(!(val&0x1) && (controlreg & 0x1)) {
-		if (!defaultPrinter)
-		defaultPrinter = new CPrinter(confdpi, confwidth,
-									confheight, confoutputDevice,
-									confmultipageOutput);
+	if(!(val & 0x1) && (controlreg & 0x1)) {
+		if (!defaultPrinter) {
+			defaultPrinter = new CPrinter(confdpi, confwidth, confheight, confoutputDevice, confmultipageOutput);
+		}
 		defaultPrinter->printChar(dataregister);
 		if(!timeout_dirty) {
-			PIC_AddEvent(PRINTER_EventHandler, (float)printer_timeout, 0);
+			PIC_AddEvent(PRINTER_EventHandler, (float)printer_timeout,0);
 			timeout_dirty = true;
 		}
 	}
 
-	controlreg=val;
+	controlreg = uint8_t(val);
 	if (defaultPrinter)
-		defaultPrinter->setAutofeed((val & 0x02)>0);
+		defaultPrinter->setAutofeed((val & 0x02) > 0);
 }
 
 Bitu PRINTER_readcontrol(Bitu /*port*/, Bitu /*iolen*/) {
@@ -2188,10 +2186,12 @@ void PRINTER_Init(Section* sec)
 	if (!section->Get_bool("printer")) return;
 
 	inited = true;
-
 	confdpi = check_cast<uint16_t>(section->Get_int("dpi"));
 	confwidth = check_cast<uint16_t>(section->Get_int("width"));
 	confheight = check_cast<uint16_t>(section->Get_int("height"));
+	printer_timeout = check_cast<Bitu>(section->Get_int("timeout"));
+	if(!printer_timeout) timeout_dirty = true; // this will lock up the timeout
+	else timeout_dirty = false;
 	strcpy(&confoutputDevice[0], section->Get_string("printoutput").c_str());
 	confmultipageOutput = section->Get_bool("multipage");
 	// device = section->Get_string("device");
@@ -2201,11 +2201,6 @@ void PRINTER_Init(Section* sec)
 	// openerror = section->Get_string("openerror");
 	// printdbcs = section->Get_string("printdbcs");
 	// shellhide = section->Get_string("shellhide");
-	printer_timeout = check_cast<Bitu>(section->Get_int("timeout"));
-
-	if (!printer_timeout) timeout_dirty = true; // this will lock up the timeout
-	else timeout_dirty = false;
-
 
 	//IO_RegisterWriteHandler(LPTPORT, PRINTER_writedata, io_width_t::byte);
 	//IO_RegisterReadHandler(LPTPORT, PRINTER_readdata, io_width_t::byte);

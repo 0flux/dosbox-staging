@@ -17,6 +17,8 @@
  */
 
 #include "dosbox.h"
+#include "checks.h"
+CHECK_NARROWING();
 
 #if C_PHYSFS
 
@@ -140,7 +142,7 @@ private:
 
 // Need to strip "/.." components and transform '\\' to '/' for physfs 
 static char* normalize(char* name, const char* basedir) {
-	int last = strlen(name)-1;
+	int last = (int)strlen(name)-1;
 	strreplace(name, '\\', '/');
 	while (last >= 0 && name[last] == '/') name[last--] = 0;
 	if (last > 0 && name[last] == '.' && name[last-1] == '/') name[last-1] = 0;
@@ -150,7 +152,7 @@ static char* normalize(char* name, const char* basedir) {
 		if (slash) *slash = 0;
 	}
 	if (strlen(basedir) > strlen(name)) { strcpy(name, basedir); strreplace(name, '\\', '/'); }
-	last = strlen(name)-1;
+	last = (int)strlen(name)-1;
 	while (last >= 0 && name[last] == '/') name[last--] = 0;
 	if (name[0] == 0) name[0] = '/';
 	LOG_MSG("PHYSFS: File access: %s", name);
@@ -185,7 +187,7 @@ physfsDrive::physfsDrive(const char* startdir, uint16_t _bytes_sector, uint8_t _
 		if((lastdir == newname) && !strchr(dir+(((dir[0]|0x20) >= 'a' && (dir[0]|0x20) <= 'z')?2:0),':')) {
 			// If the first parameter is a directory, the next one has to be the archive file,
 			// do not confuse it with basedir if trailing : is not there!
-			int tmp = strlen(dir)-1;
+			int tmp = (int)strlen(dir)-1;
 			dir[tmp++] = ':';
 			dir[tmp++] = CROSS_FILESPLIT;
 			dir[tmp] = '\0';
@@ -314,15 +316,12 @@ bool physfsDrive::FileOpen(DOS_File** file, char* name, uint32_t flags) {
 	PHYSFS_file * hand;
 
 	if (!PHYSFS_exists(newname)) return false;
-	if ((flags & 0xf) == OPEN_READ) {
-		hand = PHYSFS_openRead(newname);
-	} else {
-		// open for reading, deal with writing later
-		hand = PHYSFS_openRead(newname);
-	}
+
+	// open for reading, deal with writing later
+	hand = PHYSFS_openRead(newname);
 
 	if (!hand) {
-		if((flags&0xf) != OPEN_READ) {
+		if ((flags & 0xf) != OPEN_READ) {
 			PHYSFS_file *hmm = PHYSFS_openRead(newname);
 			if (hmm) {
 				PHYSFS_close(hmm);
@@ -716,7 +715,7 @@ bool physfsFile::Write(uint8_t* data, uint16_t* size) {
 }
 
 bool physfsFile::Seek(uint32_t* pos, uint32_t type) {
-	PHYSFS_sint64 mypos = (int32_t)*pos;
+	PHYSFS_sint64 mypos = check_cast<int32_t>(*pos);
 	switch (type) {
 		case DOS_SEEK_SET:	break;
 		case DOS_SEEK_CUR: 	mypos += PHYSFS_tell(fhandle); break;
@@ -724,10 +723,10 @@ bool physfsFile::Seek(uint32_t* pos, uint32_t type) {
 		default: 			return false; // ERROR // TODO Give some doserrorcode;
 	}
 
-	if (!PHYSFS_seek(fhandle, mypos)) {
+	if (!PHYSFS_seek(fhandle, check_cast<PHYSFS_uint64>(mypos))) {
 		// Out of file range, pretend everythings ok
 		// and move file pointer top end of file... ?! (Black Thorne)
-		PHYSFS_seek(fhandle, PHYSFS_fileLength(fhandle));
+		PHYSFS_seek(fhandle, check_cast<PHYSFS_uint64>(PHYSFS_fileLength(fhandle)));
 	};
 	// LOG_MSG("PHYSFS: Seek to %i (%i at %x) of %s (%s)", (int)mypos, (int)*pos, type, name, PhysFS::get_last_error());
 
@@ -736,7 +735,7 @@ bool physfsFile::Seek(uint32_t* pos, uint32_t type) {
 }
 
 bool physfsFile::prepareRead() {
-	PHYSFS_uint64 pos = PHYSFS_tell(fhandle);
+	PHYSFS_uint64 pos = check_cast<PHYSFS_uint64>(PHYSFS_tell(fhandle));
 	PHYSFS_close(fhandle);
 	fhandle = PHYSFS_openRead(pname);
 	PHYSFS_seek(fhandle, pos);
@@ -757,7 +756,7 @@ bool physfsFile::prepareWrite() {
 	}
 	// LOG_MSG("PHYSFS: Goto write (%s at %i)", pname, PHYSFS_tell(fhandle));
 	const char *fdir = PHYSFS_getRealDir(pname);
-	PHYSFS_uint64 pos = PHYSFS_tell(fhandle);
+	PHYSFS_uint64 pos = check_cast<PHYSFS_uint64>(PHYSFS_tell(fhandle));
 	char *slash = strrchr(pname, '/');
 	if (slash && slash != pname) {
 		*slash = 0;
@@ -909,13 +908,13 @@ const char* physfscdromDrive::GetInfo() const {
 
 bool physfscdromDrive::FileOpen(DOS_File** file, char* name, uint32_t flags)
 {
-	if ((flags&0xf)==OPEN_READWRITE) {
-		flags &= ~OPEN_READWRITE;
-	} else if ((flags&0xf)==OPEN_WRITE) {
+	if ((flags & 0xf)==OPEN_READWRITE) {
+		flags &= uint32_t(~OPEN_READWRITE);
+	} else if ((flags & 0xf)==OPEN_WRITE) {
 		DOS_SetError(DOSERR_ACCESS_DENIED);
 		return false;
 	}
-	return physfsDrive::FileOpen(file,name,flags);
+	return physfsDrive::FileOpen(file, name, flags);
 };
 
 bool physfscdromDrive::FileCreate(DOS_File** /*file*/, char* /*name*/, FatAttributeFlags /*attributes*/)
