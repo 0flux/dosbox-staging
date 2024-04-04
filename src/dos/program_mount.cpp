@@ -376,6 +376,9 @@ void MOUNT::Run(void) {
 			}
 		} else {
 			/* Give a warning when mount c:\ or the / */
+#ifdef BOXER_APP	//--Modified 2009-02-20 by Alun Bestor: we now prohibit this altogether and produce our own contextual warning.
+				if(!boxer_shouldMountPath(temp_line.c_str())) return;
+#else	// NOT BOXER_APP
 #if defined (WIN32)
 			if ( (temp_line == "c:\\") || (temp_line == "C:\\") ||
 				(temp_line == "c:/") || (temp_line == "C:/")    )
@@ -383,6 +386,7 @@ void MOUNT::Run(void) {
 #else
 			if (temp_line == "/") WriteOut(MSG_Get("PROGRAM_MOUNT_WARNING_OTHER"));
 #endif
+#endif	// BOXER_APP
 			if (type == "overlay") {
 				const auto ldp = dynamic_cast<localDrive*>(Drives[drive_index(drive)]);
 				const auto cdp = dynamic_cast<cdromDrive*>(Drives[drive_index(drive)]);
