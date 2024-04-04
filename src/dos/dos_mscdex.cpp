@@ -144,7 +144,7 @@ public:
 	uint16_t GetFirstDrive() const { return dinfo[0].drive; }
 
 	uint8_t		GetSubUnit		(uint16_t _drive);
-	bool		GetUPC			(uint8_t subUnit, uint8_t& attr, char* upc);
+	bool		GetUPC			(uint8_t subUnit, uint8_t& attr, std::string& upc);
 
 	void		InitNewMedia		(uint8_t subUnit);
 	bool		PlayAudioSector		(uint8_t subUnit, uint32_t start, uint32_t length);
@@ -666,10 +666,10 @@ bool CMscdex::GetFileName(uint16_t drive, uint16_t pos, PhysPt data) {
 	return success; 
 }
 
-bool CMscdex::GetUPC(uint8_t subUnit, uint8_t& attr, char* upc)
+bool CMscdex::GetUPC(uint8_t subUnit, uint8_t& attr, std::string& upc)
 {
 	if (subUnit>=numDrives) return false;
-	return dinfo[subUnit].lastResult = cdrom[subUnit]->GetUPC(attr,&upc[0]);
+	return dinfo[subUnit].lastResult = cdrom[subUnit]->GetUPC(attr,upc);
 }
 
 bool CMscdex::ReadSectors(uint8_t subUnit, bool raw, uint32_t sector, uint16_t num, PhysPt data) {
@@ -1072,10 +1072,24 @@ static uint16_t MSCDEX_IOCTL_Input(PhysPt buffer,uint8_t drive_unit) {
 				   };
 		case 0x0E :{ /* Get UPC */	
 					uint8_t attr = 0;
-					char upc[8] = {};
-					mscdex->GetUPC(drive_unit,attr,&upc[0]);
+					std::string upc = {};
+					mscdex->GetUPC(drive_unit,attr,upc);
 					mem_writeb(buffer+1,attr);
-					for (int i=0; i<7; i++) mem_writeb(buffer+2+i,upc[i]);
+					size_t upc_index = 0;
+					// Convert from ASCII to BCD encoding
+					for (int i = 0; i < 7; i++) {
+						uint8_t high_nibble = 0;
+						if (upc_index < upc.size()) {
+							high_nibble = upc[upc_index] - '0';
+						}
+						++upc_index;
+						uint8_t low_nibble = 0;
+						if (upc_index < upc.size()) {
+							low_nibble = upc[upc_index] - '0';
+						}
+						++upc_index;
+						mem_writeb(buffer + 2 + i, (high_nibble << 4) | (low_nibble & 0xF));
+					}
 					mem_writeb(buffer+9,0x00);
 					break;
 				   };
