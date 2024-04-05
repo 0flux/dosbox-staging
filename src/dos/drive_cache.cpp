@@ -850,6 +850,9 @@ bool DOS_Drive_Cache::OpenDir(const char* path, uint16_t& id) {
 }
 
 bool DOS_Drive_Cache::OpenDir(CFileInfo* dir, const char* expand, uint16_t& id) {
+#ifdef BOXER_APP
+	if (!dosDrive) return false; // FIXME!! this should never happen
+#endif	// BOXER_APP
 	id = GetFreeID(dir);
 	dirSearch[id] = dir;
 	char expandcopy [CROSS_LEN];
