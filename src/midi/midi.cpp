@@ -72,6 +72,8 @@ uint8_t MIDI_message_len_by_status[256] = {
 
 /* Include different midi drivers, lowest ones get checked first for default.
    Each header provides an independent midi interface. */
+#ifndef BOXER_APP
+// --Disabled 2011-09-25 by Alun Bestor: all MIDI handling is now done by Boxer
 
 #include "midi_fluidsynth.h"
 #include "midi_mt32.h"
@@ -88,6 +90,7 @@ uint8_t MIDI_message_len_by_status[256] = {
 #if C_ALSA
 #include "midi_alsa.h"
 #endif
+#endif	// NOT BOXER_APP
 
 static std::list<std::unique_ptr<MidiHandler>> handlers = {};
 
@@ -386,7 +389,12 @@ void MIDI_RawOutByte(uint8_t data)
 	const auto is_realtime_message = (data >= MidiStatus::TimingClock);
 	if (is_realtime_message) {
 		midi.realtime_message[0] = data;
+#ifdef BOXER_APP
+		// --Replaced 2011-09-25 by Alun Bestor to pass messages on to our own MIDI handling
+		boxer_sendMIDIMessage(midi.realtime_message);
+#else	// NOT BOXER_APP
 		midi.handler->PlayMsg(midi.realtime_message);
+#endif	// BOXER_APP
 		return;
 	}
 
@@ -410,8 +418,13 @@ void MIDI_RawOutByte(uint8_t data)
 				// delay:%3d", midi.sysex.buf[5],
 				// midi.sysex.buf[6], midi.sysex.buf[7],
 				// midi.sysex.pos, midi.sysex.delay_ms);
+#ifdef BOXER_APP
+				// --Replaced 2011-09-25 by Alun Bestor to pass messages on to our own MIDI handling
+				boxer_sendMIDISysex(midi.sysex.buf, midi.sysex.pos);
+#else	// NOT BOXER_APP
 				midi.handler->PlaySysex(midi.sysex.buf,
 				                        midi.sysex.pos);
+#endif	// BOXER_APP
 				if (midi.sysex.start_ms) {
 					if (midi.sysex.buf[5] == 0x7f) {
 						midi.sysex.delay_ms = 290; // All
@@ -513,7 +526,12 @@ void MIDI_RawOutByte(uint8_t data)
 
 			// 5. Send the MIDI message to the device for playback
 			if (play_msg) {
+#ifdef BOXER_APP
+				// --Replaced 2011-09-25 by Alun Bestor to pass messages on to our own MIDI handling
+				boxer_sendMIDIMessage(midi.message.msg);
+#else	// NOT BOXER_APP
 				midi.handler->PlayMsg(midi.message.msg);
+#endif	// BOXER_APP
 			}
 
 			midi.message.pos = 1; // Use Running Status
@@ -582,10 +600,13 @@ void MIDI_Unmute()
 	midi.is_muted = false;
 }
 
+#ifndef BOXER_APP
+// --Disabled 2011-09-25 by Alun Bestor to let Boxer field such questions itself
 bool MIDI_Available()
 {
 	return midi.is_available;
 }
+#endif	// NOT BOXER_APP
 
 // We'll adapt the RtMidi library, eventually, so hold off any substantial
 // rewrites on the MIDI stuff until then to unnecessary work.
@@ -610,11 +631,19 @@ public:
 
 		std::string midiconfig_prefs = section->Get_string("midiconfig");
 
+#ifdef BOXER_APP
+		// --Added 2011-09-25 by Alun Bestor to let Boxer pick up on the suggested MIDI device
+		boxer_suggestMIDIHandler(device_choice, midiconfig_prefs);
+#endif	// BOXER_APP
+
+#ifndef BOXER_APP
+		// Disabled 2011-09-30 by Alun Bestor: Boxer now handles sysex delays itself
 		if (midiconfig_prefs.find("delaysysex") != std::string::npos) {
 			midi.sysex.start_ms = GetTicks();
 			midiconfig_prefs.erase(midiconfig_prefs.find("delaysysex"));
 			LOG_MSG("MIDI: Using delayed SysEx processing");
 		}
+#endif	// NOT BOXER_APP
 
 		trim(midiconfig_prefs);
 		const char* midiconfig = midiconfig_prefs.c_str();
