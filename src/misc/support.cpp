@@ -137,6 +137,7 @@ char * ScanCMDRemain(char * cmd) {
 	} else return nullptr;
 }
 
+#ifndef BOXER_APP
 static char e_exit_buf[1024]; // greater scope as else it doesn't always gets
                               // thrown right
 void E_Exit(const char *format, ...)
@@ -150,6 +151,7 @@ void E_Exit(const char *format, ...)
 	va_end(msg);
 	ABORT_F("%s", e_exit_buf);
 }
+#endif	// NOT BOXER_APP
 
 /* Overloaded function to handle different return types of POSIX and GNU
  * strerror_r variants */
