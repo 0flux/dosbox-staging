@@ -434,6 +434,10 @@ void DOS_Shell::Run()
 				WriteOut(MSG_Get("SHELL_STARTUP_HERC"));
 			WriteOut(MSG_Get("SHELL_STARTUP_END"));
 		}
+#ifdef BOXER_APP
+		// --Added 2009-12-13 by Alun Bestor to let Boxer monitor the autoexec process
+		boxer_shellWillStartAutoexec(this);
+#endif	// BOXER_APP
 		safe_strcpy(input_line, line.c_str());
 		line.erase();
 		ParseLine(input_line);
