@@ -1514,6 +1514,13 @@ public:
 		}
 	}
 	~DOS(){
+#ifdef BOXER_APP
+		// -- Modified 2024-04-05 by Ismail Khatib to properly unmount the drives list on shutdown.
+		for (int i=0; i<DOS_DRIVES; i++) if (Drives[i]) {
+			DriveManager::UnmountDrive(i);
+		}
+#endif	// BOXER_APP
+
 		// Clear the driver pointers. The actual objects are managed by
 		// the drive manager class.
 		Drives.fill(nullptr);
