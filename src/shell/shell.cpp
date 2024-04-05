@@ -444,6 +444,10 @@ void DOS_Shell::Run()
 		if (!batchfiles.empty()){
 			RunBatchFile();
 		} else {
+#ifdef BOXER_APP
+			// --Added 2009-11-29 by Alun Bestor as a hook for detecting when control has returned to the DOS prompt. 
+			boxer_didReturnToShell(this);
+#endif	// BOXER_APP
 			if (echo) ShowPrompt();
 			InputCommand(input_line);
 			ParseLine(input_line);
