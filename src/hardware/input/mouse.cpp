@@ -503,6 +503,12 @@ void MOUSE_NewScreenParams(const MouseScreenParams &params)
 
 	update_cursor_absolute_position(params.x_abs, params.y_abs);
 
+#ifdef BOXER_APP
+	// --Added 2010-05-29: let Boxer know that the program moved the mouse cursor,
+	// and feed it the new relative mouse coordinates
+	boxer_mouseMovedToPoint(state.cursor_x_abs / mouse_shared.resolution_x, state.cursor_y_abs / mouse_shared.resolution_y);
+#endif	// BOXER_APP
+
 	MOUSE_UpdateGFX();
 	MOUSEVMM_NewScreenParams(state.cursor_x_abs, state.cursor_y_abs);
 }
@@ -585,6 +591,11 @@ void MOUSE_EventMoved(const float x_rel, const float y_rel,
 			                       state.cursor_y_abs);
 		}
 	}
+#ifdef BOXER_APP
+	// --Added 2010-05-29: let Boxer know that the program moved the mouse cursor,
+	// and feed it the new relative mouse coordinates
+	boxer_mouseMovedToPoint(state.cursor_x_abs / mouse_shared.resolution_x, state.cursor_y_abs / mouse_shared.resolution_y);
+#endif	// BOXER_APP
 }
 
 void MOUSE_EventMoved(const float x_rel, const float y_rel,
@@ -604,6 +615,11 @@ void MOUSE_EventMoved(const float x_rel, const float y_rel,
 		const float y_scaled = y_rel * mouse_config.sensitivity_coeff_y;
 		interface->NotifyMoved(x_scaled, y_scaled, 0, 0);
 	}
+#ifdef BOXER_APP
+	// --Added 2010-05-29: let Boxer know that the program moved the mouse cursor,
+	// and feed it the new relative mouse coordinates
+	boxer_mouseMovedToPoint(state.cursor_x_abs / mouse_shared.resolution_x, state.cursor_y_abs / mouse_shared.resolution_y);
+#endif	// BOXER_APP
 }
 
 void MOUSE_EventButton(const MouseButtonId button_id, const bool pressed)
@@ -647,6 +663,11 @@ void MOUSE_EventButton(const MouseButtonId button_id, const bool pressed)
 			interface->NotifyButton(button_id, pressed);
 		}
 	}
+#ifdef BOXER_APP
+	// --Added 2010-05-29: let Boxer know that the program moved the mouse cursor,
+	// and feed it the new relative mouse coordinates
+	boxer_mouseMovedToPoint(state.cursor_x_abs / mouse_shared.resolution_x, state.cursor_y_abs / mouse_shared.resolution_y);
+#endif	// BOXER_APP
 }
 
 void MOUSE_EventButton(const MouseButtonId button_id, const bool pressed,
@@ -666,6 +687,11 @@ void MOUSE_EventButton(const MouseButtonId button_id, const bool pressed,
 	if (interface && interface->IsUsingEvents()) {
 		interface->NotifyButton(button_id, pressed);
 	}
+#ifdef BOXER_APP
+	// --Added 2010-05-29: let Boxer know that the program moved the mouse cursor,
+	// and feed it the new relative mouse coordinates
+	boxer_mouseMovedToPoint(state.cursor_x_abs / mouse_shared.resolution_x, state.cursor_y_abs / mouse_shared.resolution_y);
+#endif	// BOXER_APP
 }
 
 void MOUSE_EventWheel(const int16_t w_rel)
