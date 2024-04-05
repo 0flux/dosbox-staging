@@ -84,7 +84,10 @@ void Add_VFiles(const bool add_autoexec)
 	PROGRAMS_MakeFile("CONFIG.COM", CONFIG_ProgramCreate);
 	PROGRAMS_MakeFile("HELP.COM", ProgramCreate<HELP>);
 	PROGRAMS_MakeFile("IMGMOUNT.COM", ProgramCreate<IMGMOUNT>);
+#ifndef BOXER_APP
+	// --Disabled 2012-01-06 by Alun Bestor: Boxer no longer uses the INTRO command.
 	PROGRAMS_MakeFile("INTRO.COM", ProgramCreate<INTRO>);
+#endif	// NOT BOXER_APP
 	PROGRAMS_MakeFile("KEYB.COM", ProgramCreate<KEYB>);
 	PROGRAMS_MakeFile("LOADFIX.COM", ProgramCreate<LOADFIX>);
 	PROGRAMS_MakeFile("LOADROM.COM", ProgramCreate<LOADROM>);
