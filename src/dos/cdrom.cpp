@@ -56,6 +56,14 @@ bool CDROM_Interface_SDL::SetDevice(const char *path, const int cd_number)
 	int num = SDL_CDNumDrives();
 	if ((cd_number >= 0) && (cd_number < num)) {
 		driveID = cd_number;
+#ifdef BOXER_APP
+		// --Added 2009-12-31 by Alun Bestor: shut down and restart the CDROM subsystem to reset SDL's
+		// cached file information about the CD-ROM volumes
+		// This is needed otherwise SDL persists invalid file pointers to the CD-ROM and its tracks,
+		// way to go guys
+		SDL_QuitSubSystem(SDL_INIT_CDROM);
+		SDL_Init(SDL_INIT_CDROM);
+#endif	// BOXER_APP
 		cd = SDL_CDOpen(driveID);
 		SDL_CDStatus(cd);
 		return true;
@@ -65,6 +73,14 @@ bool CDROM_Interface_SDL::SetDevice(const char *path, const int cd_number)
 	for (int i = 0; i < num; i++) {
 		cdname = SDL_CDName(i);
 		if (path_string == cdname) {
+#ifdef BOXER_APP
+			// --Added 2009-12-31 by Alun Bestor: shut down and restart the CDROM subsystem to reset SDL's
+			// cached file information about the CD-ROM volumes
+			// This is needed otherwise SDL persists invalid file pointers to the CD-ROM and its tracks,
+			// way to go guys
+			SDL_QuitSubSystem(SDL_INIT_CDROM);
+			SDL_Init(SDL_INIT_CDROM);
+#endif	// BOXER_APP
 			cd = SDL_CDOpen(i);
 			SDL_CDStatus(cd);
 			driveID = i;
@@ -141,8 +157,12 @@ bool CDROM_Interface_SDL::GetMediaTrayStatus(bool &mediaPresent,
 bool CDROM_Interface_SDL::PlayAudioSector(const uint32_t start, uint32_t len)
 {
 	// Has to be there, otherwise wrong cd status report (dunno why, sdl bug ?)
+#ifndef BOXER_APP
+	// --Disabled 2009-12-30 by Alun Bestor: no it doesn't, in fact disabling and reenabling the CD like this
+	// kills the track listing in OS X owing to another SDL bug.
 	SDL_CDClose(cd);
 	cd = SDL_CDOpen(driveID);
+#endif	// NOT BOXER_APP
 	return (SDL_CDPlay(cd, start + 150, len) == 0);
 }
 
@@ -157,8 +177,12 @@ bool CDROM_Interface_SDL::PauseAudio(bool resume)
 bool CDROM_Interface_SDL::StopAudio()
 {
 	// Has to be there, otherwise wrong cd status report (dunno why, sdl bug ?)
+#ifndef BOXER_APP
+	// --Disabled 2009-12-30 by Alun Bestor: no it doesn't, in fact disabling and reenabling the CD like this
+	// kills the track listing in OS X owing to another SDL bug.
 	SDL_CDClose(cd);
 	cd = SDL_CDOpen(driveID);
+#endif	// NOT BOXER_APP
 
 	return (SDL_CDStop(cd) == 0);
 }
