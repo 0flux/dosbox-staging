@@ -33,6 +33,10 @@
 #include "pic.h"
 #include "support.h"
 #include "timer.h"
+#ifdef BOXER_APP
+// --Added 2012-02-24 by Alun Bestor to give Boxer more hooks into keyboard behaviour
+#include "BXCoalface.h"
+#endif	// BOXER_APP
 
 using namespace bit::literals;
 
@@ -702,6 +706,14 @@ uint8_t KEYBOARD_GetLedState()
 	// We support only 3 leds
 	return (leds_all_on ? 0xff : led_state) & 0b0000'0111;
 }
+
+#ifdef BOXER_APP
+uint8_t boxer_keyboardBufferRemaining()
+{
+	if (buffer_num_used >= buffer_size) return 0;
+	else return buffer_size - buffer_num_used;
+}
+#endif	// BOXER_APP
 
 void KEYBOARD_ClrBuffer()
 {
