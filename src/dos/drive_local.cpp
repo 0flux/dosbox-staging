@@ -60,6 +60,14 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 	safe_strcat(newname, name);
 	CROSS_FILENAME(newname);
 
+#ifdef BOXER_APP
+	// --Added 2010-01-18 by Alun Bestor to allow Boxer to selectively deny write access to files
+	if (!boxer_shouldAllowWriteAccessToPath((const char *)newname, this)) {
+		DOS_SetError(DOSERR_ACCESS_DENIED);
+		return false;
+	}
+#endif	// BOXER_APP
+
 	// GetExpandNameAndNormaliseCase returns a pointer to a static local
 	// string. Make a copy to ensure it doesn't get overwritten by future
 	// calls.
@@ -154,6 +162,21 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 	safe_strcat(newname, name);
 	CROSS_FILENAME(newname);
 	dirCache.ExpandNameAndNormaliseCase(newname);
+
+#ifdef BOXER_APP
+	// --Added 2010-01-18 by Alun Bestor to allow Boxer to selectively deny write access to files
+	if (!strcmp(type, "rb+")) {
+		if (!boxer_shouldAllowWriteAccessToPath((const char*)newname, this)) {
+			// Copy-pasted from cdromDrive::FileOpen
+			if ((flags & 0xf) == OPEN_READWRITE) {
+				flags &= ~static_cast<unsigned>(OPEN_READWRITE);
+			} else if ((flags & 0xf) == OPEN_WRITE) {
+				DOS_SetError(DOSERR_ACCESS_DENIED);
+				return false;
+			}			
+		}
+	}
+#endif // BOXER_APP
 
 	// If the file's already open then flush it before continuing
 	// (Betrayal in Antara)
