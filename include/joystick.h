@@ -54,5 +54,9 @@ enum JoystickType {
 
 extern JoystickType joytype;
 extern bool button_wrapping_enabled;
+#ifdef BOXER_APP
+// --Added 2011-05-08 by Alun Bestor to let Boxer set and retrieve the gameport timing mode.
+extern bool gameport_timed;
+#endif	// BOXER_APP
 
 #endif

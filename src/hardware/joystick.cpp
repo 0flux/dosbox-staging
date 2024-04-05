@@ -179,6 +179,11 @@ static bool write_active = false;
 static bool swap34 = false;
 bool button_wrapping_enabled = true;
 
+#ifdef BOXER_APP
+// --Modified 2011-05-08 by Alun Bestor to let Boxer set and retrieve the gameport timing programmatically.
+bool gameport_timed = true;
+#endif	// BOXER_APP
+
 #ifndef BOXER_APP
 // --Removed 2011-04-26 by Alun Bestor: Boxer no longer includes sdl_mapper.cpp
 extern bool autofire; //sdl_mapper.cpp
@@ -316,6 +321,21 @@ static void write_p201_timed(io_port_t, io_val_t, io_width_t)
 		                                   calibrated_axis_rates.y);
 	}
 }
+
+#ifdef BOXER_APP
+// --Modified 2011-05-08 by Alun Bestor to let Boxer toggle the gameport timing on the fly.
+static Bitu read_p201_switchable(Bitu port,Bitu iolen) {
+	boxer_setJoystickActive(true);
+	if (gameport_timed && !write_active) return read_p201_timed(port, iolen);
+	else return read_p201(port, iolen);
+}
+
+static void write_p201_switchable(Bitu port,Bitu val,Bitu iolen) {
+	boxer_setJoystickActive(true);
+	if (gameport_timed) write_p201_timed(port, val, iolen);
+	else write_p201(port, val, iolen);
+}
+#endif
 
 void JOYSTICK_Enable(uint8_t which, bool enabled)
 {
@@ -600,6 +620,12 @@ public:
 		// Setup the joystick IO port handlers, which lets DOS games
 		// detect and use them
 		if (is_visible) {
+#ifdef BOXER_APP
+			// --Modified 2011-05-08 by Alun Bestor to let Boxer set and retrieve the gameport timing mode.
+			gameport_timed = section->Get_bool("timed");
+			ReadHandler.Install(0x201, read_p201_switchable, io_width_t::byte);
+			WriteHandler.Install(0x201, write_p201_switchable, io_width_t::byte);
+#else	// NOT BOXER_APP
 			const bool wants_timed = section->Get_bool("timed");
 			ReadHandler.Install(0x201,
 			                    wants_timed ? read_p201_timed : read_p201,
@@ -607,6 +633,7 @@ public:
 			WriteHandler.Install(0x201,
 			                     wants_timed ? write_p201_timed : write_p201,
 			                     io_width_t::byte);
+#endif	// BOXER_APP
 		}
 	}
 	~JOYSTICK() {
