@@ -37,8 +37,10 @@ extern bool shutdown_requested;
 
 // The E_Exit function throws an exception to quit. Call it in unexpected
 // circumstances.
+#ifndef BOXER_APP
 [[noreturn]] void E_Exit(const char *message, ...)
         GCC_ATTRIBUTE(__format__(__printf__, 1, 2));
+#endif	// NOT BOXER_APP
 
 void MSG_Add(const char*,const char*); // add messages (in UTF-8) to the language file
 const char* MSG_Get(const char*); // get messages (adapted to current code page)
