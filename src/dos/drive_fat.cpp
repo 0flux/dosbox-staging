@@ -830,7 +830,16 @@ fatDrive::fatDrive(const char *sysFilename,
 
 		loadedDisk->Read_Sector(0,0,1,&mbrData);
 
+#ifdef BOXER_APP
+		// --Added 2011-07-22 by Alun Bestor to bail out of reading invalid images
+		if(mbrData.magic1!= 0x55 ||	mbrData.magic2!= 0xaa) {
+			LOG_MSG("Possibly invalid partition table in disk image.");
+			created_successfully = false;
+			return;
+		}
+#else	// NOT BOXER_APP
 		if(mbrData.magic1!= 0x55 ||	mbrData.magic2!= 0xaa) LOG_MSG("Possibly invalid partition table in disk image.");
+#endif	// BOXER_APP
 
 		startSector = 63;
 		int m;
@@ -929,6 +938,11 @@ fatDrive::fatDrive(const char *sysFilename,
 	if ((bootbuffer.magic1 != 0x55) || (bootbuffer.magic2 != 0xaa)) {
 		/* Not a FAT filesystem */
 		LOG_MSG("Loaded image has no valid magicnumbers at the end!");
+#ifdef BOXER_APP
+		// --Added 2011-07-22 by Alun Bestor to bail out of reading invalid images
+		created_successfully = false;
+		return;
+#endif	// BOXER_APP
 	}
 
 	/* Sanity checks */
