@@ -29,6 +29,10 @@
 #include "keyboard.h"
 #include "regs.h"
 #include "string_utils.h"
+#ifdef BOXER_APP
+// --Added 2010-01-21 by Alun Bestor to let Boxer hook into DOSBox internals
+#include "BXCoalface.h"
+#endif
 
 [[nodiscard]] static std::vector<std::string> get_completions(std::string_view command);
 static void run_binary_executable(std::string_view fullname, std::string_view args);
@@ -474,10 +478,22 @@ bool DOS_Shell::ExecuteProgram(std::string_view name, std::string_view args)
 
 	auto extension = fullname.substr(fullname.size() - extension_size);
 
+#ifdef BOXER_APP
+	// --Added 2010-01-21 by Alun Bestor to let Boxer track the executed program
+	char canonicalPath[DOS_PATHLENGTH + 4];
+	DOS_Canonicalize(fullname, canonicalPath);
+#endif	// BOXER_APP
+
 	if (iequals(extension, ".BAT")) {
 		if (!batchfiles.empty() && !call) {
 			batchfiles.pop();
 		}
+
+#ifdef BOXER_APP
+		// --Added 2010-01-21 by Alun Bestor to let Boxer track the launched batch file
+		boxer_shellWillBeginBatchFile(this, canonicalPath, args);
+		// --Note: boxer_didEndBatchFile will be called once the batch file completes much later, in the batch file's own destructor.
+#endif	// BOXER_APP
 
 		auto reader = FileReader::GetFileReader(fullname);
 		if (reader) {
@@ -490,7 +506,15 @@ bool DOS_Shell::ExecuteProgram(std::string_view name, std::string_view args)
 	}
 
 	if (iequals(extension, ".COM") || iequals(extension, ".EXE")) {
+#ifdef BOXER_APP
+		// --Added 2010-01-21 by Alun Bestor to let Boxer track the executed program
+		boxer_shellWillExecuteFileAtDOSPath(this, canonicalPath, args);
+#endif	// BOXER_APP
 		run_binary_executable(fullname, args);
+#ifdef BOXER_APP
+		// --Added 2010-01-21 by Alun Bestor to let Boxer track the executed program
+		boxer_shellDidExecuteFileAtDOSPath(this, canonicalPath);
+#endif	// BOXER_APP
 		return true;
 	}
 
