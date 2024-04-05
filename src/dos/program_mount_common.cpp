@@ -66,6 +66,11 @@ const char *UnmountHelper(char umount)
 		DriveManager::CloseNumberedImage(imageDiskList[i_drive]);
 	}
 
+#ifdef BOXER_APP
+	// --Added 2010-01-18 by Alun Bestor: let Boxer know that the drive state has changed
+	boxer_driveDidUnmount(i_drive);
+#endif	// BOXER_APP
+
 	return MSG_Get("PROGRAM_MOUNT_UMOUNT_SUCCESS");
 }
 

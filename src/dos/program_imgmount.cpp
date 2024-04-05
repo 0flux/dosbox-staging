@@ -599,6 +599,11 @@ void IMGMOUNT::Run(void)
 		         temp_line.c_str());
 	}
 
+#ifdef BOXER_APP
+	// --Added 2010-01-18 by Alun Bestor: let Boxer know that the drive state has changed
+	boxer_driveDidMount(drive_index);
+#endif	// BOXER_APP
+
 	// check if volume label is given. be careful for cdrom
 	// if (cmd->FindString("-label",label,true))
 	// newdrive->dirCache.SetLabel(label.c_str());

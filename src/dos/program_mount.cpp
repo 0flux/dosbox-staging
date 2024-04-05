@@ -479,6 +479,10 @@ void MOUNT::Run(void) {
 		drive_pointer->SetLabel(label.c_str(), iscdrom, true);
 	}
 	if (type == "floppy") incrementFDD();
+#ifdef BOXER_APP
+	// --Added 2010-01-18 by Alun Bestor: let Boxer know that the drive state has changed
+	boxer_driveDidMount(drive_index(drive));
+#endif	// BOXER_APP
 	return;
 showusage:
 	MoreOutputStrings output(*this);
