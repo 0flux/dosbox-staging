@@ -179,7 +179,12 @@ static bool write_active = false;
 static bool swap34 = false;
 bool button_wrapping_enabled = true;
 
+#ifndef BOXER_APP
+// --Removed 2011-04-26 by Alun Bestor: Boxer no longer includes sdl_mapper.cpp
 extern bool autofire; //sdl_mapper.cpp
+#else
+bool autofire;
+#endif
 
 static uint8_t read_p201(io_port_t, io_width_t)
 {
