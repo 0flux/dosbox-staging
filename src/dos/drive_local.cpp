@@ -778,6 +778,18 @@ bool localFile::Read(uint8_t *data, uint16_t *size)
 		return false;
 	}
 
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to avoid errors on files
+	// whose backing media has disappeared
+	if (!fhandle) {
+		*size = 0;
+		// IMPLEMENTATION NOTE: you might think we ought to return false here,
+		// but no! We return true to be consistent with DOSBox's behaviour,
+		// which appears to be the behaviour expected by DOS.
+		return true;
+	}
+#endif	// BOXER_APP
+
 	// Seek if we last wrote
 	if (last_action == LastAction::Write)
 		if (ftell_and_check())
@@ -819,6 +831,18 @@ bool localFile::Write(uint8_t *data, uint16_t *size)
 		DOS_SetError(DOSERR_ACCESS_DENIED);
 		return false;
 	}
+
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to avoid errors on files
+	// whose backing media has disappeared
+	if (!fhandle) {
+		*size = 0;
+		// IMPLEMENTATION NOTE: you might think we ought to return false here,
+		// but no! We return true to be consistent with DOSBox's behaviour,
+		// which appears to be the behaviour expected by DOS.
+		return true;
+	}
+#endif	// BOXER_APP
 
 	// Seek if we last read
 	if (last_action == LastAction::Read)
@@ -878,6 +902,18 @@ bool localFile::Seek(uint32_t *pos_addr, uint32_t type)
 	//TODO Give some doserrorcode;
 		return false;//ERROR
 	}
+
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to avoid errors on files
+	// whose backing media has disappeared
+	if (!fhandle) {
+		*pos_addr = 0;
+		// IMPLEMENTATION NOTE: you might think we ought to return false here,
+		// but no! We return true to be consistent with DOSBox's behaviour,
+		// which appears to be the behaviour expected by DOS.
+		return true;
+	}
+#endif	// BOXER_APP
 
 	// The inbound position is actually an int32_t being passed through a
 	// uint32_t* pointer (pos_addr), so reinterpret the underlying memory as
@@ -993,6 +1029,11 @@ bool localFile::UpdateDateTimeFromHost()
 	if (!open)
 		return false;
 
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to avoid errors on closed files
+	if (!fhandle) return false;
+#endif	// BOXER_APP
+
 	// Legal defaults if we're unable to populate them
 	time = 1;
 	date = 1;
@@ -1025,6 +1066,20 @@ void localFile::Flush()
 	// Always reset the state even if the file is broken
 	last_action = LastAction::None;
 }
+
+#ifdef BOXER_APP
+// --Added 2011-11-03 by Alun Bestor to let Boxer inform open file handles
+// that their physical backing media will be removed.
+void localFile::willBecomeUnavailable()
+{
+	// If the real file is about to become unavailable, then close
+	// our file handle but leave the DOS file flagged as 'open'.
+	if (fhandle) {
+		fclose(fhandle);
+		fhandle = 0;
+	}
+}
+#endif	// BOXER_APP
 
 // ********************************************
 // CDROM DRIVE

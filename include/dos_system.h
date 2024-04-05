@@ -126,6 +126,10 @@ public:
 	virtual Bits RemoveRef() { return --refCtr; }
 	virtual bool UpdateDateTimeFromHost() { return true; }
 	virtual void SetFlagReadOnlyMedium() {}
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to let Boxer inform open file handles that their physical backing media will be removed.
+	virtual void willBecomeUnavailable() {}
+#endif	// BOXER_APP
 
 	void SetDrive(uint8_t drv) { hdrive=drv;}
 	uint8_t GetDrive(void) { return hdrive;}
@@ -197,6 +201,11 @@ public:
 	{
 		read_only_medium = true;
 	}
+#ifdef BOXER_APP
+	// --Added 2011-11-03 by Alun Bestor to let Boxer inform open file handles
+	// that their physical backing media will be removed.
+	void willBecomeUnavailable(void) override;
+#endif	// BOXER_APP
 	const char* GetBaseDir() const
 	{
 		return basedir;
