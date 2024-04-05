@@ -309,6 +309,14 @@ bool localDrive::FileUnlink(char* name)
 	CROSS_FILENAME(newname);
 	const char* fullname = dirCache.GetExpandNameAndNormaliseCase(newname);
 
+#ifdef BOXER_APP
+	// --Added 2010-12-29 by Alun Bestor to let Boxer selectively prevent file operations
+	if (!boxer_shouldAllowWriteAccessToPath((const char *)fullname, this)) {
+		DOS_SetError(DOSERR_ACCESS_DENIED);
+		return false;
+	}
+#endif	// BOXER_APP
+
 	// Can we remove the file without issue?
 	if (remove(fullname) == 0) {
 		dirCache.DeleteEntry(newname);
@@ -532,12 +540,27 @@ bool localDrive::MakeDir(char* dir)
 	safe_strcat(newdir, dir);
 	CROSS_FILENAME(newdir);
 
+#ifdef BOXER_APP
+	// --Modified 2010-12-29 by Alun Bestor to allow Boxer to selectively prevent file operations,
+	// and to prevent DOSBox from creating folders with the wrong file permissions.
+	char *fullname = dirCache.GetExpandName(newdir);
+
+	if (!boxer_shouldAllowWriteAccessToPath((const char *)fullname, this)) {
+		DOS_SetError(DOSERR_ACCESS_DENIED);
+		return false;
+	}
+
+	bool created = boxer_createLocalDir(fullname, this);
+	if (created) dirCache.CacheOut(newdir, true);
+	return created;
+#else	// NOT BOXER_APP
 	const auto result = local_drive_create_dir(
 	        dirCache.GetExpandNameAndNormaliseCase(newdir));
 	if (result == DOSERR_NONE) {
 		dirCache.CacheOut(newdir, true);
 	}
 	return (result == DOSERR_NONE);
+#endif	// BOXER_APP
 }
 
 bool localDrive::RemoveDir(char* dir)
@@ -546,9 +569,23 @@ bool localDrive::RemoveDir(char* dir)
 	safe_strcpy(newdir, basedir);
 	safe_strcat(newdir, dir);
 	CROSS_FILENAME(newdir);
+#ifdef BOXER_APP
+	// --Modified 2010-12-29 by Alun Bestor to allow Boxer to selectively prevent file operations
+	char *fullname = dirCache.GetExpandName(newdir);
+
+	if (!boxer_shouldAllowWriteAccessToPath((const char *)fullname, this)) {
+		DOS_SetError(DOSERR_ACCESS_DENIED);
+		return false;
+	}
+
+	bool removed = boxer_removeLocalDir(fullname, this);
+	if (removed) dirCache.DeleteEntry(newdir, true);
+	return removed;
+#else	// NOT BOXER_APP
 	int temp = rmdir(dirCache.GetExpandNameAndNormaliseCase(newdir));
 	if (temp==0) dirCache.DeleteEntry(newdir,true);
 	return (temp==0);
+#endif	// BOXER_APP
 }
 
 bool localDrive::TestDir(char* dir)
