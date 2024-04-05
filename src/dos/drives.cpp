@@ -186,12 +186,23 @@ DOS_Drive::DOS_Drive()
 {
 	curdir[0] = '\0';
 	info[0] = '\0';
+#ifdef BOXER_APP
+	// --Added 2009-10-25 by Alun Bestor to record the base system path for a drive
+	systempath[0] = '\0';
+#endif	// BOXER_APP
 }
 
 void DOS_Drive::SetDir(const char *path)
 {
 	safe_strcpy(curdir, path);
 }
+
+#ifdef BOXER_APP
+// --Added 2009-10-25 by Alun Bestor to retrieve the base system path for a drive
+char* DOS_Drive::getSystemPath(void) {
+	return systempath;
+}
+#endif	// BOXER_APP
 
 // static members variables
 uint8_t DriveManager::currentDrive                       = 0;

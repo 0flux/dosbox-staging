@@ -653,6 +653,10 @@ localDrive::localDrive(const char* startdir, uint16_t _bytes_sector,
 	type = DosDriveType::Local;
 	safe_strcpy(basedir, startdir);
 	safe_strcpy(info, startdir);
+#ifdef BOXER_APP
+	// --Added 2009-10-25 by Alun Bestor to allow Boxer to track the system path for DOSBox drives
+	strcpy(systempath, startdir);
+#endif	// BOXER_APP
 	dirCache.SetBaseDir(basedir, this);
 }
 

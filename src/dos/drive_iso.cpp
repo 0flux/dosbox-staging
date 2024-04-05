@@ -180,6 +180,10 @@ isoDrive::isoDrive(char driveLetter, const char *fileName, uint8_t mediaid, int 
 			Set_Label(buffer,discLabel,true);
 		} else error = 6; //Corrupt image
 	}
+#ifdef BOXER_APP
+	// --Added 2009-10-25 by Alun Bestor to allow Boxer to track the system path for DOSBox drives
+	strcpy(systempath, fileName);
+#endif	// BOXER_APP
 }
 
 isoDrive::~isoDrive() { }

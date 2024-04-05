@@ -410,6 +410,12 @@ public:
 	virtual void SetLabel(const char* /*label*/, bool /*iscdrom*/, bool /*updatable*/) {}
 	virtual void EmptyCache() {}
 
+#ifdef BOXER_APP
+	// --Added 2009-10-25 by Alun Bestor to access the base system path for a drive
+	char systempath[CROSS_LEN];
+	char* getSystemPath(void);
+#endif	// BOXER_APP
+
 	// disk cycling functionality (request resources)
 	virtual void Activate() {}
 

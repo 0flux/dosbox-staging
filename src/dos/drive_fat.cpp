@@ -794,6 +794,10 @@ fatDrive::fatDrive(const char *sysFilename,
 	  fatSectBuffer{0},
 	  curFatSect(0)
 {
+#ifdef BOXER_APP
+	// --Added 2009-10-25 by Alun Bestor to allow Boxer to track the system path for DOSBox drives
+	strcpy(systempath, sysFilename);
+#endif	// BOXER_APP
 	FILE *diskfile;
 	uint32_t filesize;
 	bool is_hdd;
