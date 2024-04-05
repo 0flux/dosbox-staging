@@ -353,7 +353,12 @@ static Bitu IRQ1_Handler(void) {
 		}
 		break;
 	case 0x3a:flags2 |=0x40;break;//CAPSLOCK
+#ifdef BOXER_APP
+	// --Modified 2011-03-13 by Alun Bestor to let Boxer sniff the state of lock keys.
+	case 0xba:flags1 ^=0x40;flags2 &=~0x40;leds ^=0x04;boxer_setCapsLockActive(flags1 & 0x40);break;
+#else	// NOT BOXER_APP
 	case 0xba:flags1 ^=0x40;flags2 &=~0x40;leds ^=0x04;break;
+#endif	// BOXER_APP
 	case 0x45:
 		/* if it has E1 prefix or is Ctrl-NumLock on non-enhanced keyboard => Pause */
 		if ((flags3 &0x01) || (!(flags3&0x10) && (flags1&0x04))) {
@@ -378,6 +383,10 @@ static Bitu IRQ1_Handler(void) {
 			/* pause released */
 			flags3 &=~0x01;
 		} else {
+#ifdef BOXER_APP
+			// --Added 2011-03-13 by Alun Bestor to let Boxer sniff the state of lock keys.
+			boxer_setNumLockActive(flags1 & 0x20);
+#endif	// BOXER_APP
 			flags1^=0x20;
 			leds^=0x02;
 			flags2&=~0x20;
@@ -403,7 +412,12 @@ static Bitu IRQ1_Handler(void) {
 		if((flags3&0x02) || (!(flags3&0x10) && (flags1&0x04))) {	/* Ctrl-Break released? */
 			/* nothing to do */
 		} else {
+#ifdef BOXER_APP
+			// --Modified 2011-03-13 by Alun Bestor to let Boxer sniff the state of lock keys.
+			flags1 ^=0x10;flags2 &=~0x10;leds ^=0x01;boxer_setScrollLockActive(flags1 & 0x10);break;		/* Scroll Lock released */
+#else	// NOT BOXER_APP
 			flags1 ^=0x10;flags2 &=~0x10;leds ^=0x01;break;			/* Scroll Lock released */
+#endif	// BOXER_APP
 		}
 //	case 0x52:flags2|=128;break;//See numpad					/* Insert */
 	case 0xd2:	
