@@ -41,7 +41,11 @@ constexpr uint8_t SecondaryMin = 4;
 constexpr uint8_t SecondaryMax = 7;
 
 constexpr uint16_t NULL_PAGE = 0xffff;
+#ifdef BOXER_APP
+uint32_t dma_wrapping = NULL_PAGE; // initial value
+#else	// NOT BOXER_APP
 static uint32_t dma_wrapping = NULL_PAGE; // initial value
+#endif	// BOXER_APP
 
 static void UpdateEMSMapping()
 {
