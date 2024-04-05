@@ -24,6 +24,10 @@
 #include "types.h"
 
 #include <memory>
+#ifdef BOXER_APP
+// --Added 2010-05-30 by Alun Bestor to ensure sdlmain function calls are replaced throughout DOSBox
+#include "BXCoalface.h"
+#endif
 
 int sdl_main(int argc, char *argv[]);
 
