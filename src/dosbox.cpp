@@ -144,6 +144,10 @@ void Null_Init([[maybe_unused]] Section *sec) {
 static Bitu Normal_Loop() {
 	Bits ret;
 	while (1) {
+#ifdef BOXER_APP
+		// --Added 2009-12-27 by Alun Bestor to short-circuit the emulation loop when we need to
+		if (!boxer_runLoopShouldContinue()) return 1;
+#endif	// BOXER_APP
 		if (PIC_RunQueue()) {
 			ret = (*cpudecoder)();
 			if (GCC_UNLIKELY(ret<0)) return 1;
@@ -158,6 +162,10 @@ static Bitu Normal_Loop() {
 		} else {
 			if (!GFX_Events())
 				return 0;
+#ifdef BOXER_APP
+			// --Check again at this point in case our own events have cancelled the emulation.
+			if (!boxer_runLoopShouldContinue()) return 1;
+#endif	// BOXER_APP
 			if (ticksRemain > 0) {
 				TIMER_AddTick();
 				ticksRemain--;
