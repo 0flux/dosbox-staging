@@ -358,6 +358,55 @@ static void init_mt32_dosbox_settings(Section_prop& sec_prop)
 	        "Filter for the Roland MT-32/CM-32L audio output:\n"
 	        "  off:       Don't filter the output (default).\n"
 	        "  <custom>:  Custom filter definition; see 'sb_filter' for details.");
+
+	const char* mt32_reverse_stereo_choices[] = {"off", "on", nullptr};
+	str_prop = sec_prop.Add_string("mt32_reverse_stereo", when_idle, "off");
+	assert(str_prop);
+	str_prop->Set_values(mt32_reverse_stereo_choices);
+	str_prop->Set_help("Reverse stereo channels for MT-32 output.");
+
+	const char* mt32_dac_modes[] = {"0", "1", "2", "3", "auto", nullptr};
+	str_prop = sec_prop.Add_string("mt32_dac", when_idle, "auto");
+	assert(str_prop);
+	str_prop->Set_values(mt32_dac_modes);
+	str_prop->Set_help(
+	        "MT-32 DAC input mode:\n"
+	        "  0:  Nice - default\n"
+	        "      Produces samples at double the volume, without tricks.\n"
+	        "      Higher quality than the real devices\n"
+	        "  1:  Pure\n"
+	        "      Produces samples that exactly match the bits output from the emulated LA32.\n"
+	        "      Nicer overdrive characteristics than the DAC hacks (it simply clips samples within range)\n"
+	        "      Much less likely to overdrive than any other mode.\n"
+	        "      Half the volume of any of the other modes, meaning its volume relative to the reverb\n"
+	        "      output when mixed together directly will sound wrong. So, reverb level must be lowered.\n"
+	        "      Perfect for developers while debugging :)\n"
+	        "  2:  GENERATION1\n"
+	        "      Re-orders the LA32 output bits as in early generation MT-32s (according to Wikipedia).\n"
+	        "      Bit order at DAC (where each number represents the original LA32 output bit number, and XX means the bit is always low):\n"
+	        "      15 13 12 11 10 09 08 07 06 05 04 03 02 01 00 XX\n"
+	        "  3:  GENERATION2\n"
+	        "      Re-orders the LA32 output bits as in later geneerations (personally confirmed on my CM-32L - KG).\n"
+	        "      Bit order at DAC (where each number represents the original LA32 output bit number):\n"
+	        "      15 13 12 11 10 09 08 07 06 05 04 03 02 01 00 14");
+
+	const char* mt32_reverb_modes[] = {"0", "1", "2", "3", "auto", nullptr};
+	str_prop = sec_prop.Add_string("mt32_reverb_mode", when_idle, "auto");
+	assert(str_prop);
+	str_prop->Set_values(mt32_reverb_modes);
+	str_prop->Set_help("MT-32 reverb mode.");
+
+	const char* mt32_reverb_times[] = {"0", "1", "2", "3", "4", "5", "6", "7", nullptr};
+	auto* int_prop = sec_prop.Add_int("mt32_reverb_time", when_idle, 5);
+	assert(int_prop);
+	int_prop->Set_values(mt32_reverb_times);
+	int_prop->Set_help("MT-32 reverb time."); 
+
+	const char* mt32_reverb_levels[] = {"0", "1", "2", "3", "4", "5", "6", "7", nullptr};
+	int_prop = sec_prop.Add_int("mt32_reverb_level", when_idle, 3);
+	assert(int_prop);
+	int_prop->Set_values(mt32_reverb_levels);
+	int_prop->Set_help("MT-32 reverb level.");
 }
 
 static void register_mt32_text_messages()
