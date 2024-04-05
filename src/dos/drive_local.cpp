@@ -97,6 +97,11 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 
 	(*file)->flags = OPEN_READWRITE;
 
+#ifdef BOXER_APP
+	// --Added 2010-08-21 by Alun Bestor to let Boxer monitor DOSBox's file operations
+	boxer_didCreateLocalFile(temp_name, this);
+#endif	// BOXER_APP
+
 	return true;
 }
 
@@ -307,6 +312,10 @@ bool localDrive::FileUnlink(char* name)
 	// Can we remove the file without issue?
 	if (remove(fullname) == 0) {
 		dirCache.DeleteEntry(newname);
+#ifdef BOXER_APP
+		// --Added 2010-08-21 by Alun Bestor to let Boxer monitor DOSBox's file operations
+		boxer_didRemoveLocalFile(fullname, this);
+#endif	// BOXER_APP
 		return true;
 	}
 
@@ -324,6 +333,10 @@ bool localDrive::FileUnlink(char* name)
 		// and try removing it again.
 		if (remove(fullname) == 0) {
 			dirCache.DeleteEntry(newname);
+#ifdef BOXER_APP
+			// --Added 2010-08-21 by Alun Bestor to let Boxer monitor DOSBox's file operations
+			boxer_didRemoveLocalFile(fullname, this);
+#endif	// BOXER_APP
 			return true;
 		}
 	}
