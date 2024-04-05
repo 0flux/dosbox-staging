@@ -409,6 +409,10 @@ public:
 	virtual const char *GetLabel() { return "NOLABEL"; }
 	virtual void SetLabel(const char* /*label*/, bool /*iscdrom*/, bool /*updatable*/) {}
 	virtual void EmptyCache() {}
+#ifdef BOXER_APP
+	// --Added 2010-12-11 by Alun Bestor to give Boxer the ability to do directory cache lookups
+	virtual bool getShortName(const char* dirpath, const char*filename, char* shortname) { return false; };
+#endif	// BOXER_APP
 
 #ifdef BOXER_APP
 	// --Added 2009-10-25 by Alun Bestor to access the base system path for a drive
