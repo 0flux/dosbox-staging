@@ -1615,6 +1615,10 @@ void CPU_SET_CRX(Bitu cr,Bitu value) {
 				}
 #endif
 				CPU_AutoDetermineMode<<=CPU_AUTODETERMINE_SHIFT;
+#ifdef BOXER_APP
+				// --Added 2010-06-23 for Boxer to pick up on automatic changes to the CPU core
+				GFX_SetTitle(-1, -1, false);
+#endif	// BOXER_APP
 			} else {
 				cpu.pmode=false;
 				if (value & CR0_PAGING) LOG_MSG("Paging requested without PE=1");
