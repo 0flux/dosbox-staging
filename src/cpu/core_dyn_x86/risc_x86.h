@@ -372,6 +372,7 @@ static void gen_dop_byte_imm(DualOps op,DynReg * dr1,uint8_t di1,Bitu imm) {
 					goto finish;
 	default:
 		IllegalOption("gen_dop_byte_imm");
+		return;
 	}
 	dr1->flags|=DYNFLG_CHANGED;
 nochange:
@@ -396,6 +397,7 @@ static void gen_dop_byte_imm_mem(DualOps op,DynReg * dr1,uint8_t di1,void* data)
 	case DOP_MOV:	tmp=0x058A; break;
 	default:
 		IllegalOption("gen_dop_byte_imm_mem");
+		return;
 	}
 	dr1->flags|=DYNFLG_CHANGED;
 nochange:
@@ -548,6 +550,7 @@ static void gen_dop_word_imm(DualOps op,bool dword,DynReg * dr1,Bits imm) {
 	case DOP_MOV:	cache_addb(0xb8+(gr1->index)); dr1->flags|=DYNFLG_CHANGED; goto finish;
 	default:
 		IllegalOption("gen_dop_word_imm");
+		return;
 	}
 	dr1->flags|=DYNFLG_CHANGED;
 nochange:
@@ -576,6 +579,7 @@ static void gen_dop_word_imm_mem(DualOps op,bool dword,DynReg * dr1,void* data) 
 		return;
 	default:
 		IllegalOption("gen_dop_word_imm_mem");
+		return;
 	}
 	dr1->flags|=DYNFLG_CHANGED;
 nochange:

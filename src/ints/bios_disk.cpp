@@ -260,11 +260,11 @@ void imageDisk::Set_Geometry(uint32_t setHeads, uint32_t setCyl, uint32_t setSec
 	active = true;
 }
 
-void imageDisk::Get_Geometry(uint32_t * getHeads, uint32_t *getCyl, uint32_t *getSect, uint32_t *getSectSize) {
+void imageDisk::Get_Geometry(uint32_t * getHeads, uint32_t *getCyl, uint32_t *getSectors, uint32_t *getSectorSize) {
 	*getHeads = heads;
 	*getCyl = cylinders;
-	*getSect = sectors;
-	*getSectSize = sector_size;
+	*getSectors = sectors;
+	*getSectorSize = sector_size;
 }
 
 uint8_t imageDisk::GetBiosType(void) {
