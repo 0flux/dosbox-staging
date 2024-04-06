@@ -1545,10 +1545,58 @@ void boxer_setHerculesTintMode(uint8_t mode) {
 		hercules_palette = static_cast<MonochromePalette>(mode % 3);
 		if (machine == MCH_HERC) {
 			VGA_SetHerculesPalette();
+			/*
+			//--Modified 2021-01-09 by Ismail Khatib
+			//VGA_SetHerculesPalette();
+			switch (hercules_palette) {
+			case Amber:
+				VGA_DAC_SetEntry(0x7,0x34,0x20,0x00);
+				VGA_DAC_SetEntry(0xf,0x3f,0x34,0x00);
+				break;
+			case Green:
+				// VGA_DAC_SetEntry(0x7,0x00,0x26,0x00);
+				// VGA_DAC_SetEntry(0xf,0x00,0x3f,0x00);
+				VGA_DAC_SetEntry(0x7,0x0a,0xaa,0x48);
+				VGA_DAC_SetEntry(0xf,0x0c,0xcc,0x68);
+				break;
+			case White:
+				VGA_DAC_SetEntry(0x7,0x2a,0x2a,0x2a);
+				VGA_DAC_SetEntry(0xf,0x3f,0x3f,0x3f);
+				break;
+			case PaperWhite:
+				break;
+			}
+			//--End of modifications
+			*/
 			VGA_DAC_CombineColor(1, 7);
 		}
 	}
 }
+
+/*
+text: "Default Amber"
+	"brightness": 0.5,
+	"fontColor": "#ff8100",
+
+text: "Monochrome Green"
+	"brightness": 0.5,
+	"fontColor": "#0ccc68",
+
+text: "Green Scanlines"
+	"brightness": 0.5,
+	"fontColor": "#7cff4f",
+
+text: "Apple ]["
+	"brightness": 0.5,
+	"fontColor": "#00d56d",
+
+text: "Vintage"
+	"brightness": 0.5,
+	"fontColor": "#00ff3e",
+
+text: "IBM Dos"
+	"fontColor": "#00ff3e",
+*/
 
 double boxer_CGACompositeHueOffset() {
 	return hue.as_float();

@@ -307,3 +307,16 @@ const uint16_t intCharSets[15][12] =
 	{0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, 0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e},
 	{0x0023, 0x0024, 0x00a7, 0x00c4, 0x0027, 0x0022, 0x00b6, 0x0060, 0x00a9, 0x00ae, 0x2020, 0x2122} // Legal
 };
+
+// --Added 2024-02-15 by Ismail Khatib
+uint16_t* boxer_PRINTER_get_charmap_for_codepage(uint16_t codepage) {
+	uint8_t i = 0;
+	while (charmap[i].codepage != 0) {
+		if (charmap[i].codepage == codepage) {
+			return (uint16_t*)charmap[i].map;
+		}
+		i++;
+	}
+	return nullptr;
+}
+//--End of modifications

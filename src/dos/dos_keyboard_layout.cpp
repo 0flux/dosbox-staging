@@ -1244,6 +1244,12 @@ public:
 
 		std::string layoutname = section->Get_string("keyboardlayout");
 
+#ifdef BOXER_APP
+		// --Added 2009-02-23 by Alun Bestor: if auto layout was specified, ask Boxer to provide a layout
+		const char *preferredLayout = boxer_preferredKeyboardLayout();
+		if (preferredLayout) layoutname = preferredLayout;
+#endif	// BOXER_APP
+
 		// If the use only provided a single value (language), then try using it
 		constexpr bool reason_keyboard_layout = true;
 		const auto layout_is_one_value = sv(layoutname).find(' ') == std::string::npos;

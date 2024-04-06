@@ -45,6 +45,10 @@
 #include "string_utils.h"
 #include "cross.h"
 #include "inout.h"
+#ifdef BOXER_APP
+#include "drive_local_gboxer.h"
+#include "Coalface.h"
+#endif	// BOXER_APP
 
 bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attributes)
 {
@@ -79,7 +83,8 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 	attributes.archive = true;
 #ifdef BOXER_APP
 	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
-	FILE* file_pointer = boxer_openLocalFile(this, expanded_name, attributes);
+	// FILE* file_pointer = boxer_openLocalFile(this, expanded_name, attributes);
+	ADB::VFILE* file_pointer = GBoxer::Coalface::open_local_file(this, expanded_name, attributes);
 #else	// NOT BOXER_APP
 	FILE* file_pointer = local_drive_create_file(expanded_name, attributes);
 #endif	// BOXER_APP
@@ -97,7 +102,11 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 	}
 
 	// Make the 16 bit device information
+#ifdef BOXER_APP
+	*file = new GBoxer::LocalFile(name, expanded_name, file_pointer, basedir);
+#else	// NOT BOXER_APP
 	*file = new localFile(name, expanded_name, file_pointer, basedir);
+#endif	// BOXER_APP
 
 	(*file)->flags = OPEN_READWRITE;
 
@@ -195,7 +204,8 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 
 #ifdef BOXER_APP
 	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
-	FILE* fhandle = boxer_openLocalFile(this, newname, type);
+	// FILE* fhandle = boxer_openLocalFile(this, newname, type);
+	ADB::VFILE* fhandle = GBoxer::Coalface::open_local_file(this, newname, type);
 #else	// NOT BOXER_APP
 	FILE* fhandle = fopen(newname, type);
 #endif	// BOXER_APP
@@ -219,13 +229,18 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 		// If yes, check if the file can be opened with Read-only access:
 #ifdef BOXER_APP
 		// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
-		fhandle = boxer_openLocalFile(this, newname, "rb");
+		// fhandle = boxer_openLocalFile(this, newname, "rb");
+		fhandle = GBoxer::Coalface::open_local_file(this, newname, "rb");
 #else	// NOT BOXER_APP
 		fhandle = fopen(newname, "rb");
 #endif	// BOXER_APP
 		if (fhandle) {
 			if (!always_open_ro_files) {
+#ifdef BOXER_APP
+				GBoxer::Coalface::close_local_file(fhandle);
+#else	// NOT BOXER_APP
 				fclose(fhandle);
+#endif	// BOXER_APP
 				fhandle = nullptr;
 			}
 
@@ -274,7 +289,11 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 		return false;
 	}
 
+#ifdef BOXER_APP
+	*file = new GBoxer::LocalFile(name, newname, fhandle, basedir);
+#else	// NOT BOXER_APP
 	*file = new localFile(name, newname, fhandle, basedir);
+#endif	// BOXER_APP
 	(*file)->flags = flags;  // for the inheritance flag and maybe check for others.
 
 	return true;
@@ -290,7 +309,9 @@ FILE* localDrive::GetSystemFilePtr(const char* const name, const char* const typ
 
 #ifdef BOXER_APP
 	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
-	return boxer_openLocalFile(this, newname, type);
+	// return boxer_openLocalFile(this, newname, type);
+	// return GBoxer::Coalface::open_local_file(this, newname, type);
+	return fopen(newname,type);
 #else	// NOT BOXER_APP
 	return fopen(newname,type);
 #endif	// BOXER_APP
@@ -1218,7 +1239,12 @@ bool cdromDrive::FileOpen(DOS_File** file, char* name, uint32_t flags)
 	}
 	bool success = localDrive::FileOpen(file, name, flags);
 	if (success)
+#ifdef BOXER_APP
+		// (dynamic_cast<GBoxer::LocalFile*>(*file))->FlagReadOnlyMedium();
+		(dynamic_cast<GBoxer::LocalFile*>(*file))->SetFlagReadOnlyMedium();
+#else	// NOT BOXER_APP
 		(*file)->SetFlagReadOnlyMedium();
+#endif	// BOXER_APP
 	return success;
 }
 
