@@ -1273,6 +1273,14 @@ public:
 			}
 		}
 
+#ifdef BOXER_APP
+		// --Added 2012-05-21 by Alun Bestor to fix US-858 layout loading up with keyboard remapping enabled.
+		const char *lcode = loaded_layout->GetMainLanguageCode();
+		if (iequals(lcode, "US") && loaded_layout->GetLayoutName()) {
+			loaded_layout->SwitchForeignLayout();
+		}
+#endif	// BOXER_APP
+
 		// Re-create country information and [autoexec] section
 		// to match new code page and keyboard layout
 		DOS_RefreshCountryInfo(reason_keyboard_layout);
