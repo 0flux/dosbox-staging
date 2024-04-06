@@ -533,6 +533,8 @@ CDROM_Interface_Image::~CDROM_Interface_Image()
 bool CDROM_Interface_Image::SetDevice(const char* path, [[maybe_unused]] const int cd_number)
 {
 	const bool result = LoadCueSheet((char *)path) || LoadIsoFile((char *)path);
+#ifndef BOXER_APP
+	// --Disabled 2012-11-07 by Alun Bestor: this is already covered by our own error messages.
 	if (!result) {
 		// print error message on dosbox console
 		char buf[MAX_LINE_LENGTH];
@@ -540,6 +542,7 @@ bool CDROM_Interface_Image::SetDevice(const char* path, [[maybe_unused]] const i
 		uint16_t size = (uint16_t)strlen(buf);
 		DOS_WriteFile(STDOUT, (uint8_t*)buf, &size);
 	}
+#endif	// NOT BOXER_APP
 	return result;
 }
 
