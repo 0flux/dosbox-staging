@@ -411,8 +411,13 @@ void DOS_Shell::Run()
 	}
 	/* Start a normal shell and check for a first command init */
 	if (cmd->FindString("/INIT",line,true)) {
+#ifdef BOXER_APP
+		// --Modified 2012-08-19 by Alun Bestor to allow selective overriding of the startup messages.
+		const bool wants_welcome_banner = boxer_shellShouldDisplayStartupMessages(this);
+#else	// NOT BOXER_APP
 		const bool wants_welcome_banner = control->GetStartupVerbosity() >=
 		                                  Verbosity::High;
+#endif	// BOXER_APP
 		if (wants_welcome_banner) {
 			WriteOut(MSG_Get("SHELL_STARTUP_BEGIN"),
 			         DOSBOX_GetDetailedVersion(), PRIMARY_MOD_NAME,
@@ -444,7 +449,18 @@ void DOS_Shell::Run()
 	} else {
 		WriteOut(MSG_Get("SHELL_STARTUP_SUB"), DOSBOX_GetDetailedVersion());
 	}
+#ifdef BOXER_APP
+	// --Added 2012-08-19 by Alun Bestor to let Boxer interrupt the command input with its own commands.
+	while (boxer_shellShouldContinue(this) && !exit_cmd_called && !shutdown_requested) {
+#else	// NOT BOXER_APP
 	while (!exit_cmd_called && !shutdown_requested) {
+#endif	// BOXER_APP
+#ifdef BOXER_APP
+		// --Added 2012-08-19 by Alun Bestor to let Boxer insert its own commands into batch processing.
+		if (boxer_hasPendingCommandsForShell(this)) {
+			boxer_executeNextPendingCommandForShell(this);
+		} else
+#endif	// BOXER_APP
 		if (!batchfiles.empty()){
 			RunBatchFile();
 		} else {
@@ -454,7 +470,14 @@ void DOS_Shell::Run()
 #endif	// BOXER_APP
 			if (echo) ShowPrompt();
 			InputCommand(input_line);
+#ifdef BOXER_APP
+			// --Added 2012-08-19 by Alun Bestor to let Boxer interrupt the command input with its own commands.
+			if (boxer_shellShouldContinue(this) && !boxer_hasPendingCommandsForShell(this)) {
+				ParseLine(input_line);
+			}
+#else	// NOT BOXER_APP
 			ParseLine(input_line);
+#endif	// BOXER_APP
 		}
 	}
 }

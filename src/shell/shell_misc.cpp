@@ -143,6 +143,44 @@ std::string DOS_Shell::ReadCommand()
 
 		bool viewing_tab_completions = false;
 
+#ifdef BOXER_APP
+		// --Modified 2012-08-19 by Alun Bestor to let Boxer inject its own input
+		// and cancel keyboard input listening.
+		boxer_shellWillReadCommandInputFromHandle(this, input_handle);
+		while(boxer_continueListeningForKeyEvents() && !DOS_ReadFile(input_handle, &data, &byte_count)) {
+			uint16_t dummy = 1;
+			DOS_CloseFile(input_handle);
+			DOS_OpenFile("con", 2, &dummy);
+			LOG(LOG_MISC, LOG_ERROR)
+			("Reopening the input handle. This is a bug!");
+		}
+		boxer_shellDidReadCommandInputFromHandle(this, input_handle);
+
+		if (!boxer_shellShouldContinue(this)) {
+			return;
+		}
+
+		bool executeImmediately = false;
+		if (boxer_handleShellCommandInput(this, command, &cursor_position, &executeImmediately)) {
+			if (executeImmediately) {
+				byte_count = 0;
+				break;
+			} else {
+				// Correct the visible cursor position and the cached lengths
+				byte_count = CMD_MAXLINE - command.size() - 2;
+				int cursorOffset = command.size() - cursor_position;
+				while (cursorOffset > 0) {
+					// outc(8); --cursorOffset;
+					if (cursor_position > 0) {
+						command.erase(cursor_position - 1, 1);
+						--cursor_position;
+					}
+					--cursorOffset;
+				}
+				continue;
+			}
+		}
+#else	// NOT BOXER_APP
 		while (!DOS_ReadFile(input_handle, &data, &byte_count)) {
 			uint16_t dummy = 1;
 			DOS_CloseFile(input_handle);
@@ -150,7 +188,7 @@ std::string DOS_Shell::ReadCommand()
 			LOG(LOG_MISC, LOG_ERROR)
 			("Reopening the input handle. This is a bug!");
 		}
-
+#endif	// BOXER_APP
 		if (byte_count == 0) {
 			break;
 		}
