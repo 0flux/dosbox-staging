@@ -77,8 +77,12 @@ bool localDrive::FileCreate(DOS_File** file, char* name, FatAttributeFlags attri
 	const bool file_exists = FileExists(expanded_name);
 
 	attributes.archive = true;
+#ifdef BOXER_APP
+	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+	FILE* file_pointer = boxer_openLocalFile(this, expanded_name, attributes);
+#else	// NOT BOXER_APP
 	FILE* file_pointer = local_drive_create_file(expanded_name, attributes);
-
+#endif	// BOXER_APP
 	if (!file_pointer) {
 		LOG_MSG("Warning: file creation failed: %s", expanded_name);
 		DOS_SetError(DOSERR_ACCESS_DENIED);
@@ -189,7 +193,12 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 	if (open_file)
 		open_file->Flush();
 
+#ifdef BOXER_APP
+	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+	FILE* fhandle = boxer_openLocalFile(this, newname, type);
+#else	// NOT BOXER_APP
 	FILE* fhandle = fopen(newname, type);
+#endif	// BOXER_APP
 
 #ifdef DEBUG
 	std::string open_msg;
@@ -208,7 +217,12 @@ bool localDrive::FileOpen(DOS_File **file, char *name, uint32_t flags)
 	// RW access.  So check if this is the case:
 	if (!fhandle && flags & (OPEN_READWRITE | OPEN_WRITE)) {
 		// If yes, check if the file can be opened with Read-only access:
+#ifdef BOXER_APP
+		// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+		fhandle = boxer_openLocalFile(this, newname, "rb");
+#else	// NOT BOXER_APP
 		fhandle = fopen(newname, "rb");
+#endif	// BOXER_APP
 		if (fhandle) {
 			if (!always_open_ro_files) {
 				fclose(fhandle);
@@ -274,7 +288,12 @@ FILE* localDrive::GetSystemFilePtr(const char* const name, const char* const typ
 	CROSS_FILENAME(newname);
 	dirCache.ExpandNameAndNormaliseCase(newname);
 
+#ifdef BOXER_APP
+	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+	return boxer_openLocalFile(this, newname, type);
+#else	// NOT BOXER_APP
 	return fopen(newname,type);
+#endif	// BOXER_APP
 }
 
 bool localDrive::GetSystemFilename(char* sysName, const char* const dosName)
@@ -318,7 +337,12 @@ bool localDrive::FileUnlink(char* name)
 #endif	// BOXER_APP
 
 	// Can we remove the file without issue?
+#ifdef BOXER_APP
+	// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+	if (boxer_removeLocalFile(this, fullname)) {
+#else	// NOT BOXER_APP
 	if (remove(fullname) == 0) {
+#endif	// BOXER_APP
 		dirCache.DeleteEntry(newname);
 #ifdef BOXER_APP
 		// --Added 2010-08-21 by Alun Bestor to let Boxer monitor DOSBox's file operations
@@ -339,7 +363,12 @@ bool localDrive::FileUnlink(char* name)
 			}
 		}
 		// and try removing it again.
+#ifdef BOXER_APP
+		// -- Modified 2012-07-24 by Alun Bestor to allow Boxer to shadow local file access
+		if (boxer_removeLocalFile(this, fullname)) {
+#else	// NOT BOXER_APP
 		if (remove(fullname) == 0) {
+#endif	// BOXER_APP
 			dirCache.DeleteEntry(newname);
 #ifdef BOXER_APP
 			// --Added 2010-08-21 by Alun Bestor to let Boxer monitor DOSBox's file operations
@@ -447,7 +476,12 @@ bool localDrive::FindNext(DOS_DTA& dta)
 		safe_strcpy(dir_entcopy, dir_ent);
 		const char* temp_name = dirCache.GetExpandNameAndNormaliseCase(
 		        full_name);
+#ifdef BOXER_APP
+		// --Modified 2012-07-24 by Alun Bestor to wrap local file operations
+		if (!boxer_getLocalPathStats(this, temp_name, &stat_block)) {
+#else // NOT BOXER_APP
 		if (stat(temp_name, &stat_block) != 0) {
+#endif	// BOXER_APP
 			continue; // No symlinks and such
 		}
 
@@ -504,6 +538,20 @@ bool localDrive::GetFileAttr(char* name, FatAttributeFlags* attr)
 	CROSS_FILENAME(newname);
 	dirCache.ExpandNameAndNormaliseCase(newname);
 
+#ifdef BOXER_APP
+	// --Modified 2012-07-24 by Alun Bestor to wrap local file operations
+	struct stat status;
+	if (boxer_getLocalPathStats(this, newname, &status)) {
+		*attr = DOS_ATTR_ARCHIVE;
+		if(status.st_mode & S_IFDIR) *attr |= DOS_ATTR_DIRECTORY;
+		return true;
+	}
+
+	// The caller is responsible to act accordingly, possibly
+	// it should set DOS error code (setting it here is not allowed)
+	*attr = 0;
+	return false;
+#else	// NOT BOXER_APP
 	if (local_drive_get_attributes(newname, *attr) != DOSERR_NONE) {
 		// The caller is responsible to act accordingly, possibly
 		// it should set DOS error code (setting it here is not allowed)
@@ -512,6 +560,7 @@ bool localDrive::GetFileAttr(char* name, FatAttributeFlags* attr)
 	}
 
 	return true;
+#endif	// BOXER_APP
 }
 
 bool localDrive::SetFileAttr(const char* name, const FatAttributeFlags attr)
@@ -724,6 +773,24 @@ Bits localDrive::UnMount()
 }
 
 /* helper functions for drive cache */
+#ifdef BOXER_APP
+// --Modified 2012-07-25 by Alun Bestor to wrap local filesystem access
+void* localDrive::open_directory_vfunc(const char* name) {
+	return boxer_openLocalDirectory(name, this);
+}
+
+void localDrive::close_directory_vfunc(void* handle) {
+	boxer_closeLocalDirectory(handle);
+}
+
+bool localDrive::read_directory_first_vfunc(void* handle, char* entry_name, bool& is_directory) {
+	return boxer_getNextDirectoryEntry(handle, entry_name, is_directory);
+}
+
+bool localDrive::read_directory_next_vfunc(void* handle, char* entry_name, bool& is_directory) {
+	return boxer_getNextDirectoryEntry(handle, entry_name, is_directory);
+}
+#else	// NOT BOXER_APP
 void* localDrive::open_directory_vfunc(const char* name) {
 	return open_directory(name);
 }
@@ -742,6 +809,7 @@ bool localDrive::read_directory_next_vfunc(void* handle, char* entry_name, bool&
 	// return read_directory_next((dir_information*)handle, entry_name, is_directory);
 	return read_directory_next(static_cast<dir_information*>(handle), entry_name, is_directory);
 }
+#endif	// BOXER_APP
 
 localDrive::localDrive(const char* startdir, uint16_t _bytes_sector,
                        uint8_t _sectors_cluster, uint16_t _total_clusters,
