@@ -102,6 +102,10 @@ public:
 	void SwitchForeignLayout();
 	const char *GetLayoutName();
 	const char *GetMainLanguageCode();
+#ifdef BOXER_APP
+	// --Modified 2012-02-25 by Alun Bestor to support limited on-the-fly layout switching
+	bool HasLanguageCode(const char *requested_code);
+#endif	// BOXER_APP
 
 private:
 	static constexpr uint8_t layout_pages = 12;
@@ -132,7 +136,10 @@ private:
 	// switching layouts.
 	std::list<std::string> language_codes = {};
 
+#ifndef BOXER_APP
+	// --Modified 2012-02-25 by Alun Bestor to support limited on-the-fly layout switching
 	bool HasLanguageCode(const char *requested_code);
+#endif	// NOT BOXER_APP
 	void ResetLanguageCodes();
 
 	void Reset();
@@ -1181,6 +1188,47 @@ KeyboardErrorCode DOS_LoadKeyboardLayoutFromLanguage(const char * language_pref)
 	}
 	return result;
 }
+
+#ifdef BOXER_APP
+// --Added 2012-02-24 by Alun Bestor to let Boxer check if any layout has been loaded.
+const char* boxer_keyboardLayoutName()
+{
+	return DOS_GetLoadedLayout();
+}
+
+bool boxer_keyboardLayoutLoaded()
+{
+	return (loaded_layout != nullptr);
+}
+
+bool boxer_keyboardLayoutSupported(const char* code)
+{
+	if (loaded_layout) {
+		// If the current layout supports the specified language code without switching anything, yippee
+		if (loaded_layout->HasLanguageCode(code)) return true;
+
+		// If we can safely swap layouts without changing codepages, yippee too
+		uint16_t detectedCodepage = loaded_layout->ExtractCodePage(code);
+		if (detectedCodepage == dos.loaded_codepage) return true;
+	}
+	return false;
+}
+
+bool boxer_keyboardLayoutActive()
+{
+	return (DOS_GetLoadedLayout() != nullptr);
+}
+
+void boxer_setKeyboardLayoutActive(bool active)
+{
+	if (loaded_layout) {
+		// Force-disable US layouts,
+		// to match how switch_keyboard_layout() behaves.
+		if (loaded_layout->GetLayoutName() == nullptr) active = false;
+		if (boxer_keyboardLayoutActive() != active) loaded_layout->SwitchForeignLayout();
+	}
+}
+#endif	// BOXER_APP
 
 class DOS_KeyboardLayout final : public Module_base {
 public:
