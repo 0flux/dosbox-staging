@@ -595,6 +595,10 @@ bool localDrive::TestDir(char* dir)
 	safe_strcat(newdir, dir);
 	CROSS_FILENAME(newdir);
 	dirCache.ExpandNameAndNormaliseCase(newdir);
+#ifdef BOXER_APP
+	// --Modified 2012-04-27 by Alun Bestor to wrap local file operations
+	return boxer_localDirectoryExists(newdir, this);
+#else	// NOT BOXER_APP
 	// Skip directory test, if "\"
 	size_t len = safe_strlen(newdir);
 	if (len && (newdir[len-1]!='\\')) {
@@ -604,6 +608,7 @@ bool localDrive::TestDir(char* dir)
 		if ((test.st_mode & S_IFDIR)==0)	return false;
 	};
 	return path_exists(newdir);
+#endif	// BOXER_APP
 }
 
 bool localDrive::Rename(char* oldname, char* newname)
@@ -618,9 +623,23 @@ bool localDrive::Rename(char* oldname, char* newname)
 	safe_strcpy(newnew, basedir);
 	safe_strcat(newnew, newname);
 	CROSS_FILENAME(newnew);
+#ifdef BOXER_APP
+	// --Modified 2012-04-27 by Alun Bestor to wrap local file operations
+	char *fullname = dirCache.GetExpandName(newnew);
+	if (!boxer_shouldAllowWriteAccessToPath((const char *)newold, this) ||
+		!boxer_shouldAllowWriteAccessToPath((const char *)fullname, this)) {
+		DOS_SetError(DOSERR_ACCESS_DENIED);
+		return false;
+	}
+
+	bool moved = boxer_moveLocalFile(newold, fullname, this);
+	if (moved) dirCache.CacheOut(newnew);
+	return moved;
+#else	// NOT BOXER_APP
 	int temp = rename(newold, dirCache.GetExpandNameAndNormaliseCase(newnew));
 	if (temp==0) dirCache.CacheOut(newnew);
 	return (temp == 0);
+#endif	// BOXER_APP
 }
 
 bool localDrive::AllocationInfo(uint16_t* _bytes_sector, uint8_t* _sectors_cluster,
@@ -641,7 +660,12 @@ bool localDrive::FileExists(const char* name)
 	CROSS_FILENAME(newname);
 	dirCache.ExpandNameAndNormaliseCase(newname);
 	struct stat temp_stat;
+#ifdef BOXER_APP
+	// --Modified 2012-04-27 by Alun Bestor to wrap local file operations
+	if (!boxer_getLocalPathStats(newname,&temp_stat)!=0) return false;
+#else	// NOT BOXER_APP
 	if (stat(newname,&temp_stat)!=0) return false;
+#endif	// BOXER_APP
 	if (temp_stat.st_mode & S_IFDIR) return false;
 	return true;
 }
@@ -656,7 +680,12 @@ bool localDrive::FileStat(const char* name, FileStat_Block* const stat_block)
 	struct stat temp_stat;
 
 	FatAttributeFlags attributes = {};
+#if BOXER_APP
+	//--Modified 2012-04-27 by Alun Bestor to wrap local file operations
+	if (!boxer_getLocalPathStats(newname, this, &temp_stat) ||
+#else	// BOXER_APP
 	if (stat(newname, &temp_stat) != 0 ||
+#endif	// BOXER_APP
 	    local_drive_get_attributes(newname, attributes) != DOSERR_NONE) {
 		return false;
 	}
