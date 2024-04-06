@@ -40,6 +40,11 @@ extern callback_number_t call_shellstop;
  * by "external" programs. (config) */
 extern DOS_Shell* first_shell;
 
+#ifdef BOXER_APP
+// --Added 2013-09-22 by Alun Bestor to let Boxer talk to the currently active shell
+extern DOS_Shell* current_shell;
+#endif	// BOXER_APP
+
 class ByteReader {
 public:
 	virtual void Reset()                  = 0;
@@ -74,7 +79,12 @@ public:
 	BatchFile& operator=(const BatchFile&) = delete;
 	BatchFile(BatchFile&&)                 = delete;
 	BatchFile& operator=(BatchFile&&)      = delete;
+#ifdef BOXER_APP
+	// --Modified 2013-09-22 by Alun Bestor to let Boxer track the lifecycle of the batch file
+	virtual ~BatchFile();
+#else	// NOT BOXER_APP
 	virtual ~BatchFile()                   = default;
+#endif	// BOXER_APP
 
 	virtual bool ReadLine(char* line);
 	bool Goto(std::string_view label);

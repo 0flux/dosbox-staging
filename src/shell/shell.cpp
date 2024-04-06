@@ -45,6 +45,10 @@ callback_number_t call_shellstop = 0;
 /* Larger scope so shell_del autoexec can use it to
  * remove things from the environment */
 DOS_Shell *first_shell = nullptr;
+#ifdef BOXER_APP
+// --Added 2013-09-22 by Alun Bestor to track the currently active shell
+DOS_Shell *current_shell = nullptr;
+#endif	// BOXER_APP
 
 static Bitu shellstop_handler()
 {
@@ -388,6 +392,12 @@ void DOS_Shell::RunBatchFile()
 
 void DOS_Shell::Run()
 {
+#ifdef BOXER_APP
+	// --Added 2013-09-22 by Alun Bestor to keep a record of the currently-processing shell
+	boxer_shellWillStart(this);
+	DOS_Shell *previousShell = current_shell;
+	current_shell = this;
+#endif	// BOXER_APP
 	// COMMAND.COM's /C and /INIT spawn sub-commands. When parsing help, we need
 	// to be sure the /? and -? are intended for us and not part of the
 	// sub-command.
@@ -407,6 +417,11 @@ void DOS_Shell::Run()
 		temp.echo = echo;
 		temp.ParseLine(input_line);
 		temp.RunBatchFile();
+#ifdef BOXER_APP
+		// --Added 2013-09-22 by Alun Bestor to keep a record of the currently-processing shell
+		current_shell = previousShell;
+		boxer_shellDidFinish(this);
+#endif	// BOXER_APP
 		return;
 	}
 	/* Start a normal shell and check for a first command init */
@@ -480,6 +495,12 @@ void DOS_Shell::Run()
 #endif	// BOXER_APP
 		}
 	}
+
+#ifdef BOXER_APP
+	// --Added 2013-09-22 by Alun Bestor to keep a record of the currently-processing shell
+	current_shell = previousShell;
+	boxer_shellDidFinish(this);
+#endif	// BOXER_APP
 }
 
 void DOS_Shell::SyntaxError()

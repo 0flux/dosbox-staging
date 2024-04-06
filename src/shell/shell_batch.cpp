@@ -22,6 +22,10 @@
 
 #include "logging.h"
 #include "string_utils.h"
+#ifdef BOXER_APP
+// --Added 2013-09-22 by Alun Bestor to let Boxer track batch files
+#include "BXCoalface.h"
+#endif	// BOXER_APP
 
 // Permitted ASCII control characters in batch files
 constexpr uint8_t Esc           = 27;
@@ -37,6 +41,14 @@ BatchFile::BatchFile(const HostShell& host, std::unique_ptr<ByteReader> input_re
           reader(std::move(input_reader)),
           echo(echo_on)
 {}
+
+#ifdef BOXER_APP
+// --Added 2013-09-22 by Alun Bestor to let Boxer track the lifecycle of the batch file
+BatchFile::~BatchFile()
+{
+	boxer_shellDidEndBatchFile(shell, cmd.GetFileName());
+}
+#endif	// BOXER_APP
 
 bool BatchFile::ReadLine(char* lineout)
 {
