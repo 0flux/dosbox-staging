@@ -577,6 +577,12 @@ static bool IsEnhancedKey(uint16_t &key) {
 
 static Bitu INT16_Handler(void) {
 	uint16_t temp=0;
+#ifdef BOXER_APP
+	// --Added 2012-08-19 by Alun Bestor to let Boxer interrupt keyboard listening loops
+	if (!boxer_continueListeningForKeyEvents()) {
+		return CBRET_STOP;
+	}
+#endif	// BOXER_APP
 	switch (reg_ah) {
 	case 0x00: /* GET KEYSTROKE */
 		if ((get_key(temp)) && (!IsEnhancedKey(temp))) {

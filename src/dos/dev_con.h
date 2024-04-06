@@ -87,6 +87,13 @@ bool device_CON::Read(uint8_t * data,uint16_t * size) {
 	while (*size>count) {
 		reg_ah=(IS_EGAVGA_ARCH)?0x10:0x0;
 		CALLBACK_RunRealInt(0x16);
+#ifdef BOXER_APP
+		// --Added 2012-08-19 by Alun Bestor to let Boxer interrupt STDIN keyboard input listening
+		if (!boxer_continueListeningForKeyEvents()) {
+			reg_ax=oldax;
+			return false;
+		}
+#endif	// BOXER_APP
 		switch(reg_al) {
 		case 13:
 			data[count++]=0x0D;
