@@ -1533,3 +1533,33 @@ void VGA_AddCompositeSettings(Config& conf)
 	assert(sec);
 	composite_settings(*sec);
 }
+
+#ifndef BOXER_APP
+// --Added 2013-02-10 by Alun Bestor to give Boxer control over Hercules graphics options
+uint8_t boxer_herculesTintMode() {
+	return static_cast<uint8_t>(hercules_palette);
+}
+
+void boxer_setHerculesTintMode(uint8_t mode) {
+	if (hercules_palette != static_cast<MonochromePalette>(mode)) {
+		hercules_palette = static_cast<MonochromePalette>(mode % 3);
+		if (machine == MCH_HERC) {
+			VGA_SetHerculesPalette();
+			VGA_DAC_CombineColor(1, 7);
+		}
+	}
+}
+
+double boxer_CGACompositeHueOffset() {
+	return hue.as_float();
+}
+
+void boxer_setCGACompositeHueOffset(double offset) {
+	if (offset != hue.as_float()) {
+		hue.set(static_cast<int>(offset));
+		if (machine == MCH_CGA) {
+			update_cga16_color();
+		}
+	}
+}
+#endif	// BOXER_APP
