@@ -52,6 +52,10 @@
 
 #include "mverb/MVerb.h"
 #include "tal-chorus/ChorusEngine.h"
+#ifdef BOXER_APP
+// --Added 2012-02-26 by Alun Bestor to give Boxer control over the mixer.
+#include "BXCoalfaceAudio.h"
+#endif
 
 CHECK_NARROWING();
 
@@ -734,6 +738,16 @@ void MixerChannel::Set0dbScalar(const float scalar)
 
 void MixerChannel::RecalcCombinedVolume()
 {
+#ifdef BOXER_APP
+	// --Modified 2012-02-26 by Alun Bestor to give Boxer control over master volume
+	combined_volume_scalar.left = user_volume_scalar.left *
+	                              app_volume_scalar.left *
+	                              boxer_masterVolume(BXLeftChannel) * db0_volume_scalar;
+
+	combined_volume_scalar.right = user_volume_scalar.right *
+	                               app_volume_scalar.right *
+	                               boxer_masterVolume(BXRightChannel) * db0_volume_scalar;
+#else	// NOT BOXER_APP
 	combined_volume_scalar.left = user_volume_scalar.left *
 	                              app_volume_scalar.left *
 	                              mixer.master_volume.left * db0_volume_scalar;
@@ -741,11 +755,17 @@ void MixerChannel::RecalcCombinedVolume()
 	combined_volume_scalar.right = user_volume_scalar.right *
 	                               app_volume_scalar.right *
 	                               mixer.master_volume.right * db0_volume_scalar;
+#endif	// BOXER_APP
 }
 
 const AudioFrame MixerChannel::GetUserVolume() const
 {
+#ifdef BOXER_APP
+	// --Modified 2012-02-26 by Alun Bestor to show Boxer's master volume instead.
+	return {boxer_masterVolume(BXLeftChannel), boxer_masterVolume(BXRightChannel)};
+#else	// NOT BOXER_APP
 	return user_volume_scalar;
+#endif	// BOXER_APP
 }
 
 void MixerChannel::SetUserVolume(const AudioFrame volume)
@@ -2996,3 +3016,15 @@ void MIXER_AddConfigSection(const config_ptr_t& conf)
 	assert(sec);
 	init_mixer_dosbox_settings(*sec);
 }
+
+#ifdef BOXER_APP
+// --Added 2012-02-26 by Alun Bestor to give Boxer an easy way to update channel volumes.
+void boxer_updateVolumes()
+{
+	MixerChannel *source = mixer.channels;
+	while (source) {
+		source->RecalcCombinedVolume();
+		source = source->next;
+	}
+}
+#endif
