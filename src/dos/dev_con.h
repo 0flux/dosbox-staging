@@ -421,6 +421,10 @@ bool device_CON::Close() {
 }
 
 uint16_t device_CON::GetInformation(void) {
+#ifdef BOXER_APP
+	// --Added 2012-04-15 by Alun Bestor to let Boxer inject key codes into the console.
+	if (boxer_numKeyCodesInPasteBuffer()) return 0x8093;
+#endif	// BOXER_APP
 	uint16_t head=mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	uint16_t tail=mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
 

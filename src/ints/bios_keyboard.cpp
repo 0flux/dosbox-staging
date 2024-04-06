@@ -209,6 +209,10 @@ static void add_key(uint16_t code) {
 }
 
 static bool get_key(uint16_t &code) {
+#ifdef BOXER_APP
+	// --Added 2012-04-15 to let Boxer insert its own keys
+	if (boxer_getNextKeyCodeInPasteBuffer(&code, true)) return true;
+#endif	// BOXER_APP
 	uint16_t start,end,head,tail,thead;
 	if (machine==MCH_PCJR) {
 		/* should be done for cga and others as well, to be tested */
@@ -230,6 +234,10 @@ static bool get_key(uint16_t &code) {
 }
 
 static bool check_key(uint16_t &code) {
+#ifdef BOXER_APP
+	// --Added 2012-04-15 to let Boxer insert its own keys
+	if (boxer_getNextKeyCodeInPasteBuffer(&code, false)) return true;
+#endif	// BOXER_APP
 	uint16_t head,tail;
 	head =mem_readw(BIOS_KEYBOARD_BUFFER_HEAD);
 	tail =mem_readw(BIOS_KEYBOARD_BUFFER_TAIL);
